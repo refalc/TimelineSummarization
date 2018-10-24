@@ -6,11 +6,11 @@ if __name__ == '__main__':
     controller = TSController(path_to_config)
     docs_ids = ['10366234', '13394061', '10822682', '10482437', '10105996', '12171411', '12483331', '13197524',
                 '11872175', '11768974', '11092876', '11136413', '11155970', '13142685', '12521721']
-    #docs_ids = ['10366234', '10822682']
+    #docs_ids = ['10366234', '13394061', '10822682', '10366234', '10822682']
     #docs_ids = ['11092876']
     #docs_ids = ['13394061']
-    answer_file = 'C:\\!DEV\\C++\\TemporalSummarization\\TemporalSummarizationVS\\Data\\answer.xml'
-    controller.run_queries(docs_ids, answer_file)
+    answer_file = 'C:\\!DEV\\C++\\TemporalSummarization\\TemporalSummarizationVS\\Data\\answer_forth.xml'
+    controller.run_queries(docs_ids, answer_file, 2)
     '''
     answer_files = ['C:\\!DEV\\C++\\TemporalSummarization\\TemporalSummarizationVS\\Data\\answer_4.xml',
                     'C:\\!DEV\\C++\\TemporalSummarization\\TemporalSummarizationVS\\Data\\answer_5.xml',

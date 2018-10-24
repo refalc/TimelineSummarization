@@ -6,8 +6,7 @@ import nltk
 import re
 from .ts_primitives import *
 from ..utils.utils import SimpleTimer
-import threading
-import concurrent.futures
+import multiprocessing
 
 
 class NldxSearchEngineBridge:
@@ -34,8 +33,11 @@ class NldxSearchEngineBridge:
         self.m_StopWords = [elem.upper() for elem in nltk.corpus.stopwords.words('russian')]
         self.m_StopWords += ['HDR', 'CIR', 'CIR_HDR', 'CIRHDR', 'CIRPAR', 'NUM']
 
-        self.m_NldxMutex = threading.Lock()
         self.m_HashedDocs = dict()
+        try:
+            self.m_Lock = lock
+        except Exception as e:
+            self.m_Lock = None
 
     def retrieve_docs(self, query, params):
         common_query_list = []
@@ -52,10 +54,18 @@ class NldxSearchEngineBridge:
         req_params = {'doccnt': params['doccnt'], 'soft_or_coef': params['soft_or_coef'],
                       'reqtext': '+'.join(query_list)}
         req_query = 'http://{}:{}'.format(self.m_Address, self.m_Port)
-        self.m_NldxMutex.acquire()
+
         print('ir request={}'.format(req_params))
-        req_res = requests.get(req_query, req_params)
-        self.m_NldxMutex.release()
+
+        if self.m_Lock is not None:
+            self.m_Lock.acquire()
+            try:
+                req_res = requests.get(req_query, req_params)
+            finally:
+                self.m_Lock.release()
+        else:
+            req_res = requests.get(req_query, req_params)
+
         if len(req_res.text) == 0:
             print(req_res)
             return []
@@ -121,9 +131,14 @@ class NldxSearchEngineBridge:
         if db_answer is not None:
             return db_answer['data']
 
-        self.m_NldxMutex.acquire()
-        req_res = requests.get(req_query, params)
-        self.m_NldxMutex.release()
+        if self.m_Lock is not None:
+            self.m_Lock.acquire()
+            try:
+                req_res = requests.get(req_query, params)
+            finally:
+                self.m_Lock.release()
+        else:
+            req_res = requests.get(req_query, params)
 
         req_text = req_res.text
         if len(req_text) > 500000:

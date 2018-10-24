@@ -23,7 +23,6 @@ class TSCollectionConstructor:
 
         index_type_list = ['ЛЕММА', 'СЛОВО', 'ТЕРМИН']
 
-
         call_query = TSQuery()
         for index_type in index_type_list:
             modality_list = self.m_Config['query_l1_modality_list']
