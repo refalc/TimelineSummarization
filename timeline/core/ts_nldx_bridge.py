@@ -38,15 +38,17 @@ class NldxSearchEngineBridge:
         self.m_HashedDocs = dict()
 
     def retrieve_docs(self, query, params):
-        query_list = []
+        common_query_list = []
+        termins_query_list = []
         for index in query.index_iter():
             if index.get_type() == 'ТЕРМИН':
-                for item_name in index.get_index_data():
-                    query_list.append('/ТЕРМИН=\"' + item_name + '\"')
+                for item in index.get_sorted_index_data_list():
+                    termins_query_list.append('/ТЕРМИН=\"' + item.m_Name + '\"')
             else:
-                for item_name in index.get_index_data():
-                    query_list.append(item_name)
+                for item in index.get_sorted_index_data_list():
+                    common_query_list.append(item.m_Name)
 
+        query_list = common_query_list + termins_query_list
         req_params = {'doccnt': params['doccnt'], 'soft_or_coef': params['soft_or_coef'],
                       'reqtext': '+'.join(query_list)}
         req_query = 'http://{}:{}'.format(self.m_Address, self.m_Port)
@@ -55,6 +57,7 @@ class NldxSearchEngineBridge:
         req_res = requests.get(req_query, req_params)
         self.m_NldxMutex.release()
         if len(req_res.text) == 0:
+            print(req_res)
             return []
 
         docs = []
@@ -66,7 +69,8 @@ class NldxSearchEngineBridge:
                 break
 
             docs.append((doc_id, doc_rank_w))
-
+        if len(docs) == 0:
+            print(req_res.text)
         return docs
 
     def retrieve_docs_coll(self, query, params):
@@ -74,6 +78,7 @@ class NldxSearchEngineBridge:
         collection = TSCollection()
         recieved_docs = self.retrieve_docs(query, params)
 
+        print('Retrieved {} doc ids'.format(len(recieved_docs)))
         for doc_data in recieved_docs:
             doc_id = doc_data[0]
             document = self.retrieve_doc(doc_id)

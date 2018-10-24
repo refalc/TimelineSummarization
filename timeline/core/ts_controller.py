@@ -11,10 +11,10 @@ import codecs
 
 class TSController:
     def __init__(self, path_to_config):
+        self.m_DataExtractor = None
         self.m_Config = ConfigReader(path_to_config)
-        self.m_DataExtractor = NldxSearchEngineBridge('127.0.0.1', '2062')
-        self.m_QueryConstructor = TSQueryConstructor(self.m_Config, self.m_DataExtractor)
-        self.m_CollectionConstructor = TSCollectionConstructor(self.m_Config, self.m_DataExtractor)
+        self.m_QueryConstructor = TSQueryConstructor(self.m_Config)
+        self.m_CollectionConstructor = TSCollectionConstructor(self.m_Config)
         self.m_Solver = TSSolver(self.m_Config)
         self.m_SaveMutex = BoundedSemaphore()
 
@@ -34,6 +34,10 @@ class TSController:
 
     def run_query(self, doc_id, answer_file, story_id=0):
         #timer = SimpleTimer('TSController.run_query')
+        self.m_DataExtractor = NldxSearchEngineBridge('127.0.0.1', '2062')
+        self.m_QueryConstructor.init_data_extractor(self.m_DataExtractor)
+        self.m_CollectionConstructor.init_data_extractor(self.m_DataExtractor)
+
         query = self._construct_query(doc_id)
         timeline_collection = self._construct_collection(query)
         timeline_queries = self._construct_timeline_queries(query, timeline_collection)
@@ -58,7 +62,7 @@ class TSController:
         importance_mode = self.m_Config['importance']
         if temporal_mode and importance_mode:
             for doc_id in timeline_collection.get_top_docs():
-                doc_int_date = get_document_int_time(timeline_collection.get_doc(doc_id))
+                doc_int_date = get_document_int_time(timeline_collection.get_doc(doc_id), min_val='day')
                 if timeline_queries.check_time(doc_int_date):
                     continue
                 top_doc_query = self.m_QueryConstructor.construct_query(doc_id)

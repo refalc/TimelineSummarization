@@ -66,6 +66,11 @@ class TSIndex:
     def get_index_data(self):
         return self.m_IndexData
 
+    def get_sorted_index_data_list(self):
+        items_list = sorted([(item, item.m_Weight) for item_name, item in self.m_IndexData.items()],
+                            key=lambda x: (-x[1], x[0].m_Name))
+        return [item[0] for item in items_list]
+
     def get_type(self):
         return self.m_IndexType
 
@@ -317,6 +322,9 @@ class TSCollection:
     def get_docs(self):
         return self.m_Documents
 
+    def get_len(self):
+        return len(self.m_Documents)
+
     def iterate_docs(self):
         return (self.m_Documents[doc_id] for doc_id in self.m_Documents)
 
@@ -345,6 +353,10 @@ class TSTimeLineCollections:
         else:
             self.m_Collections[time] = collection
 
+    def iterate_collections(self):
+        collections = [(time, coll) for time, coll in self.m_Collections.items()]
+        return (val for val in collections)
+
     def iterate_collections_by_time(self):
         sorted_collections = sorted([(time, coll) for time, coll in self.m_Collections.items()], key=lambda x: x[0])
         return (val for val in sorted_collections)
@@ -358,6 +370,10 @@ class TSTimeLineCollections:
 
     def get_top_docs(self):
         return self.m_TopDocs
+
+    def del_coll_by_time(self, time):
+        if time in self.m_Collections:
+            del self.m_Collections[time]
 
 
 class TSTimeLineQueries:

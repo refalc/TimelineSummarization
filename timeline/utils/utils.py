@@ -45,18 +45,8 @@ class ConfigReader:
         return self.m_Params.get(item, None)
 
 
-def get_document_int_time(document):
+def get_document_int_time(document, min_val='day'):
     date_str = document.get_meta_data('DATE')
-    day = date_str[0:2]
-    month = date_str[3:5]
-    year = date_str[6:10]
-    int_time = int(day) + int(month) * 31 + int(year) * 365;
-    return int_time
-
-
-def get_document_float_time(document):
-    date_str = document.get_meta_data('DATE')
-    '''27.04.2015 12:02:17'''
     day = date_str[0:2]
     month = date_str[3:5]
     year = date_str[6:10]
@@ -64,14 +54,28 @@ def get_document_float_time(document):
     minute = date_str[14:16]
     sec = date_str[17:19]
 
-    float_time = int(sec) + int(minute) * 60 + int(hour) * 60 * 60 + int(day) * 60 * 60 * 24 + \
-                 int(month) * 60 * 60 * 24 * 31 + int(year) * 60 * 60 * 24 * 31 * 365
-    return float_time
+    time_data = [('sec', 1, sec), ('minute', 60, minute), ('hour', 60, hour), ('day', 24, day),
+                 ('month', 31, month), ('year', 365, year)]
+
+    mult = -1
+    full_val = 0
+    for val in time_data:
+        if mult > 0:
+            mult *= val[1]
+            full_val += mult * int(val[2])
+        if val[0] == min_val:
+            mult = 1
+            full_val += mult * int(val[2])
+
+    if mult < 0:
+        raise Exception('ERROR: time info gen error')
+
+    return full_val
 
 
-def get_sentence_float_time(sentence):
+def get_sentence_int_time(sentence, min_val='sec'):
     sentence_doc = sentence.get_parent_doc()
-    return get_document_float_time(sentence_doc)
+    return get_document_int_time(sentence_doc, min_val)
 
 
 class SimpleTimer:

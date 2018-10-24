@@ -22,7 +22,7 @@ class TSDocRepr:
         return self.m_Importance
 
     def _calc_date(self):
-        return utils.get_document_float_time(self.m_Doc)
+        return utils.get_document_int_time(self.m_Doc, min_val='minute')
 
     def get_date(self):
         return self.m_FloatDate
@@ -35,13 +35,10 @@ class TSDocRepr:
 
     def sim(self, other_repr):
         weight = 0.0
-        counter = 0
         for tail_sent in self.m_TailSentences:
             for head_sent in other_repr.m_HeadSentences:
-                weight += tail_sent.sim(head_sent)
-                counter += 1
-        if counter > 0:
-            weight /= counter
+                weight = max(weight, tail_sent.sim(head_sent))
+
         return weight
 
 
@@ -49,8 +46,8 @@ class TSDocImportanceSolver:
     def __init__(self, config):
         self.m_Config = config
 
-    def construct_doc_importance(self, collection):
-        docs_reprs = self._construct_docs_reprs(collection)
+    def construct_doc_importance(self, timeline_collection):
+        docs_reprs = self._construct_docs_reprs(timeline_collection)
         if len(docs_reprs) == 0:
             return dict(), []
 
@@ -76,12 +73,13 @@ class TSDocImportanceSolver:
 
         return docid2importance, top_docs
 
-    def _construct_docs_reprs(self, collection):
+    def _construct_docs_reprs(self, timeline_collection):
         docs_reprs = []
-        for doc in collection.iterate_docs():
-            docs_reprs.append(self._construct_doc_repr(doc))
+        for time, coll in timeline_collection.iterate_collections():
+            for doc in coll.iterate_docs():
+                docs_reprs.append(self._construct_doc_repr(doc))
 
-        docs_reprs = sorted(docs_reprs, key=lambda doc: doc.get_date())
+        docs_reprs = sorted(docs_reprs, key=lambda d: d.get_date())
         return docs_reprs
 
     def _construct_doc_repr(self, document):

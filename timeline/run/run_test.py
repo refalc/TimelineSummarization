@@ -8,7 +8,8 @@ if __name__ == '__main__':
                 '11872175', '11768974', '11092876', '11136413', '11155970', '13142685', '12521721']
     #docs_ids = ['10366234', '10822682']
     #docs_ids = ['11092876']
-    answer_file = 'C:\\!DEV\\C++\\TemporalSummarization\\TemporalSummarizationVS\\Data\\answer_2.xml'
+    #docs_ids = ['13394061']
+    answer_file = 'C:\\!DEV\\C++\\TemporalSummarization\\TemporalSummarizationVS\\Data\\answer.xml'
     controller.run_queries(docs_ids, answer_file)
     '''
     answer_files = ['C:\\!DEV\\C++\\TemporalSummarization\\TemporalSummarizationVS\\Data\\answer_4.xml',
