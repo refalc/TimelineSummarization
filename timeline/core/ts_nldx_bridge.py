@@ -89,6 +89,10 @@ class NldxSearchEngineBridge:
         recieved_docs = self.retrieve_docs(query, params)
 
         print('Retrieved {} doc ids'.format(len(recieved_docs)))
+        with open(r'C:\Users\Misha\source\repos\TemporalSummarizationVS\Data\doc_request_out2.txt', 'w') as file:
+            for doc_id in recieved_docs:
+                file.write('{}\n'.format(doc_id))
+
         for doc_data in recieved_docs:
             doc_id = doc_data[0]
             document = self.retrieve_doc(doc_id)

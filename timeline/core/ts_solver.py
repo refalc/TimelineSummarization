@@ -1,8 +1,6 @@
 from .ts_primitives import *
 from ..utils import utils
-import threading
-import concurrent.futures
-import multiprocessing
+
 
 class TSSolver:
     def __init__(self, config):
@@ -95,7 +93,7 @@ class TSSolver:
             sentence.get_sentence_id() / sentence.get_parent_doc().get_sentences_num())
         score = sentence_num_penality * lambda_val * sim_to_query - (1.0 - lambda_val) * sim_to_other
 
-        return score
+        return round(score, 3)
 
     def _get_sentences_from_collection(self, collection):
         sentences = []

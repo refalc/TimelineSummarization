@@ -37,7 +37,7 @@ class TSDocRepr:
         weight = 0.0
         for tail_sent in self.m_TailSentences:
             for head_sent in other_repr.m_HeadSentences:
-                weight = max(weight, tail_sent.sim(head_sent))
+                weight = max(weight, round(tail_sent.sim(head_sent), 3))
 
         return weight
 
@@ -79,7 +79,7 @@ class TSDocImportanceSolver:
             for doc in coll.iterate_docs():
                 docs_reprs.append(self._construct_doc_repr(doc))
 
-        docs_reprs = sorted(docs_reprs, key=lambda d: d.get_date())
+        docs_reprs = sorted(docs_reprs, key=lambda d: (d.get_date(), d.get_doc_id()))
         return docs_reprs
 
     def _construct_doc_repr(self, document):
