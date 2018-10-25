@@ -1,5 +1,7 @@
 import math
 import json
+from scipy.spatial import distance
+import numpy as np
 
 
 class TSIndexItem:
@@ -57,6 +59,7 @@ class TSIndex:
         self.m_IndexType = index_type
         self.m_IndexData = dict()
         self.m_Len = None
+        self.m_IndexEmbedding = None
 
     def add_to_index(self, index_item):
         if self.m_Len is not None:
@@ -119,6 +122,27 @@ class TSIndex:
             ts_index_item.from_list(index_item_data)
             self.m_IndexData[ts_index_item.m_Name] = ts_index_item
 
+    def construct_index_embedding(self, w2v_model):
+        embedding_vector = None
+        for item_name in self.m_IndexData:
+            word = item_name.lower()
+            weight = self.m_IndexData[item_name].m_Weight
+            if word in w2v_model:
+                if embedding_vector is None:
+                    embedding_vector = weight * w2v_model[word]
+                else:
+                    embedding_vector += weight * w2v_model[word]
+
+        norm = np.linalg.norm(embedding_vector)
+        if norm > 0:
+            embedding_vector /= norm
+        self.m_IndexEmbedding = embedding_vector
+
+    def sim_embedding(self, other):
+        if self.m_IndexEmbedding is None or other.m_IndexEmbedding is None:
+            return 0.0
+        return np.dot(self.m_IndexEmbedding, other.m_IndexEmbedding)
+
 
 class TSIndexiesHolder:
     def __init__(self):
@@ -157,6 +181,11 @@ class TSIndexiesHolder:
         if modality not in self.m_Indexies or modality not in other.m_Indexies:
             return 0.0
         return self.m_Indexies[modality].sim(other.m_Indexies[modality])
+
+    def sim_embedding(self, other, modality='ЛЕММА'):
+        if modality not in self.m_Indexies or modality not in other.m_Indexies:
+            return 0.0
+        return self.m_Indexies[modality].sim_embedding(other.m_Indexies[modality])
 
     def to_dict(self):
         return {'ts_indexies_holder': {index_type: index.to_dict() for index_type, index in self.m_Indexies.items()}}
@@ -241,6 +270,9 @@ class TSSentence(TSIndexiesHolder, TSMeta):
 
     def __hash__(self):
         return hash('{}:{}'.format(self.m_SentenceID, self.m_ParentDoc.get_doc_id()))
+
+    def get_sent_len(self, modality='ЛЕММА'):
+        return len(self.get_index(modality).get_index_data())
 
 
 class TSDocument(TSIndexiesHolder, TSMeta):

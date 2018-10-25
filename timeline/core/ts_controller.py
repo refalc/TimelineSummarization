@@ -4,7 +4,7 @@ from .ts_query_constructor import TSQueryConstructor
 from .ts_solver import TSSolver
 from .ts_primitives import TSTimeLineQueries
 from ..utils.utils import ConfigReader, SimpleTimer, get_document_int_time
-
+from gensim.models import KeyedVectors
 import multiprocessing
 import codecs
 
@@ -18,9 +18,16 @@ class TSController:
     def __init__(self, path_to_config):
         self.m_DataExtractor = None
         self.m_Config = ConfigReader(path_to_config)
+        if self.m_Config['di_w2v'] or self.m_Config['slv_w2v']:
+            self.m_W2V_model = KeyedVectors.load(self.m_Config['w2v_path'])
         self.m_QueryConstructor = TSQueryConstructor(self.m_Config)
         self.m_CollectionConstructor = TSCollectionConstructor(self.m_Config)
         self.m_Solver = TSSolver(self.m_Config)
+
+        if self.m_Config['di_w2v']:
+            self.m_CollectionConstructor.init_w2v_model(self.m_W2V_model)
+        if self.m_Config['slv_w2v']:
+            self.m_Solver.init_w2v_model(self.m_W2V_model)
 
     def run_queries(self, doc_id_list, answer_file, processes=1):
         timer = SimpleTimer('TSController.run_queries')

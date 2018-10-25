@@ -33,11 +33,12 @@ class TSDocRepr:
     def assign_tail_sentences(self, sentences):
         self.m_TailSentences = sentences
 
-    def sim(self, other_repr):
+    def sim(self, other_repr, w2v_enable=False):
         weight = 0.0
         for tail_sent in self.m_TailSentences:
             for head_sent in other_repr.m_HeadSentences:
-                weight = max(weight, round(tail_sent.sim(head_sent), 3))
+                sim = tail_sent.sim_embedding(head_sent) if w2v_enable else tail_sent.sim(head_sent)
+                weight = max(weight, round(sim, 3))
 
         return weight
 
@@ -45,6 +46,10 @@ class TSDocRepr:
 class TSDocImportanceSolver:
     def __init__(self, config):
         self.m_Config = config
+        self.m_W2V_model = None
+
+    def init_w2v_model(self, w2v_model):
+        self.m_W2V_model = w2v_model
 
     def construct_doc_importance(self, timeline_collection):
         docs_reprs = self._construct_docs_reprs(timeline_collection)
@@ -90,8 +95,28 @@ class TSDocImportanceSolver:
 
         doc_sentences = [sent for sent in document.sentence_iter()]
 
-        head_sentences = doc_sentences[:head_docs_sent]
-        tail_sentence = doc_sentences[-tail_docs_sent:]
+        head_sentences = []
+        tail_sentence = []
+        sent_min_len = self.m_Config['min_sentence_len']
+        sent_max_len = self.m_Config['max_sentence_len']
+        w2v_enable = bool(self.m_Config['di_w2v'])
+        i = 0
+        while len(head_sentences) < head_docs_sent and i < len(doc_sentences):
+            sent = doc_sentences[i]
+            if sent.get_index('ЛЕММА') is not None and sent_min_len < sent.get_sent_len() < sent_max_len:
+                if w2v_enable:
+                    sent.get_index('ЛЕММА').construct_index_embedding(self.m_W2V_model)
+                head_sentences.append(sent)
+            i += 1
+
+        i = len(doc_sentences) - 1
+        while len(tail_sentence) < tail_docs_sent and i >= 0:
+            sent = doc_sentences[i]
+            if sent.get_index('ЛЕММА') is not None and sent_min_len < sent.get_sent_len() < sent_max_len:
+                if w2v_enable:
+                    sent.get_index('ЛЕММА').construct_index_embedding(self.m_W2V_model)
+                tail_sentence.append(sent)
+            i -= 1
 
         doc_repr.assign_head_sentences(head_sentences)
         doc_repr.assign_tail_sentences(tail_sentence)
@@ -101,10 +126,12 @@ class TSDocImportanceSolver:
     def _create_sim_doc_matrix(self, coll_doc_reprs):
         docs_reprs_size = len(coll_doc_reprs)
         sim_doc_matrix = np.zeros([docs_reprs_size] * 2)
+        w2v_enable = bool(self.m_Config['di_w2v'])
+        min_link_score = self.m_Config['di_min_link_score']
         for i in range(1, docs_reprs_size):
             for j in range(0, i):
-                sim = coll_doc_reprs[i].sim(coll_doc_reprs[j])
-                if sim > self.m_Config['di_min_link_score']:
+                sim = coll_doc_reprs[i].sim(coll_doc_reprs[j], w2v_enable)
+                if sim > min_link_score:
                     sim_doc_matrix[i][j] = sim
         return sim_doc_matrix
 

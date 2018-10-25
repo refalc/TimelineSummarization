@@ -13,6 +13,9 @@ class TSCollectionConstructor:
     def init_data_extractor(self, data_extractor):
         self.m_DataExtractor = data_extractor
 
+    def init_w2v_model(self, w2v_model):
+        self.m_DocImportanceSolver.init_w2v_model(w2v_model)
+
     def construct_collection(self, query):
         constr_coll_doccount = self.m_Config['constr_coll_doccount']
         constr_coll_softor = self.m_Config['constr_coll_softor']
