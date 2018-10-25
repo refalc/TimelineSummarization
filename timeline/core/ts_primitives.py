@@ -419,7 +419,7 @@ class TSTimeLineQueries:
         self.m_Queries[time] = query
 
     def get_query_for_time(self, time):
-        min_time_dif = 10000 * 365
+        min_time_dif = 3600 * 24 * 365 * 10
         chosen_time = -1
         for query_time in sorted([time for time in self.m_Queries]):
             time_dif = abs(query_time - time)

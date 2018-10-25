@@ -26,6 +26,7 @@ class TSCollectionConstructor:
 
         index_type_list = ['ЛЕММА', 'СЛОВО', 'ТЕРМИН']
 
+        '''
         call_query = TSQuery()
         for index_type in index_type_list:
             modality_list = self.m_Config['query_l1_modality_list']
@@ -38,8 +39,8 @@ class TSCollectionConstructor:
                 call_query.add_index_item(item)
 
         collection = self.m_DataExtractor.retrieve_docs_coll(call_query, call_params)
-
-        #collection = self.m_DataExtractor.retrieve_docs_coll(query, call_params)
+        '''
+        collection = self.m_DataExtractor.retrieve_docs_coll(query, call_params)
         timeline_collection = TSTimeLineCollections()
         temporal_mode = self.m_Config['temporal']
         importance_mode = self.m_Config['importance']
