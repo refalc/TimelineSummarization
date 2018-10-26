@@ -33,7 +33,7 @@ class TSEvaluator:
     def run_and_evaluate(self, path_to_config, doc_ids, answer_path, evaluate_out_path, process_num=1,
                          mode='sent_by_sent'):
         controller = TSController(path_to_config)
-        res = controller.run_queries(doc_ids, answer_path, process_num, db_name='test_nldx')
+        res = controller.run_queries(doc_ids, answer_path, process_num)
         if res:
             evaluate_results = self.evaluate(answer_path, mode=mode)
             self._save_results(evaluate_results, mode, controller.get_config(), evaluate_out_path)
@@ -43,10 +43,15 @@ class TSEvaluator:
         evaluate_results_list = sorted([[key, value] for key, value in evaluate_results.items()], reverse=True)
         for i in range(0, len(evaluate_results_list)):
             metrics_data = evaluate_results_list[i][1]
+            if metrics_data is None:
+                continue
             evaluate_results_list[i][1] = sorted([[key, value] for key, value in metrics_data.items()])
             for j in range(0, len(evaluate_results_list[i][1])):
                 metrics_mode_data = evaluate_results_list[i][1][j][1]
                 evaluate_results_list[i][1][j][1] = sorted([[key, value] for key, value in metrics_mode_data.items()])
+
+        empty_result = '\t<rouge-1>\n\t\t<f>0.000</f>\n\t\t<p>0.000</p>\n\t\t<r>0.000</r>\n\t</rouge-1>\n' \
+                       '\t<rouge-2>\n\t\t<f>0.000</f>\n\t\t<p>0.000</p>\n\t\t<r>0.000</r>\n\t</rouge-2>\n'
 
         with codecs.open(output_file, 'a', 'utf-8') as file_descr:
             file_descr.write('<run time={} mode={}>\n'.format(datetime.datetime.now(), mode))
@@ -54,6 +59,10 @@ class TSEvaluator:
             file_descr.write('<results>\n')
             for tag, eval_res_data in evaluate_results_list:
                 file_descr.write('<tag={}>\n'.format(tag))
+                if eval_res_data is None:
+                    file_descr.write(empty_result)
+                    continue
+
                 for metric, metric_data in eval_res_data:
                     file_descr.write('\t<{}>\n'.format(metric))
                     for metric_mode, val in metric_data:
@@ -153,6 +162,8 @@ class TSEvaluator:
         all_metric_results['mean'] = mean_metrics
 
         for query in all_metric_results:
+            if all_metric_results[query] is None:
+                continue
             for metric in all_metric_results[query]:
                 for metric_mode in all_metric_results[query][metric]:
                     rounded_val = round(all_metric_results[query][metric][metric_mode], 3)
@@ -178,6 +189,8 @@ class TSEvaluator:
 
     @staticmethod
     def _devide_metric_results_by(metric_results, denominator):
+        if metric_results is None:
+            return None
         dev_metric_results = metric_results.copy()
         for metric in dev_metric_results:
             for mode in dev_metric_results[metric]:
