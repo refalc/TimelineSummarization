@@ -29,7 +29,7 @@ class TSController:
         if self.m_Config['slv_w2v']:
             self.m_Solver.init_w2v_model(self.m_W2V_model)
 
-    def run_queries(self, doc_id_list, answer_file, processes=1):
+    def run_queries(self, doc_id_list, answer_file, processes=1, db_name='nldx'):
         timer = SimpleTimer('TSController.run_queries')
 
         summaries = []
@@ -38,25 +38,16 @@ class TSController:
         single_process = True if processes <= 1 else False
         if single_process:
             for story_id, doc_id in enumerate(doc_id_list):
-                query_result = self.run_query(doc_id, story_id)
+                query_result = self.run_query(doc_id, story_id, db_name=db_name)
                 if query_result[0] == 'OK':
                     summaries.append((query_result[3], query_result[1]))
                 else:
                     error_results.append(query_result)
-
-            if len(error_results) != 0:
-                print('Completed with ERRORS:')
-                for error_info in error_results:
-                    print(error_info)
-            else:
-                print('Completed without ERRORS')
         else:
             run_queries_lock = multiprocessing.Lock()
-            process_pool = multiprocessing.Pool(processes=processes, initializer=init_pool, initargs=(run_queries_lock, ))
-            run_query_args = [[self]*len(doc_id_list), doc_id_list,
-                              [story_id for story_id in range(0, len(doc_id_list))]]
-
-            run_query_args = [(self, doc_id, story_id) for story_id, doc_id in enumerate(doc_id_list)]
+            process_pool = multiprocessing.Pool(processes=processes, initializer=init_pool,
+                                                initargs=(run_queries_lock, ))
+            run_query_args = [(self, doc_id, story_id, db_name) for story_id, doc_id in enumerate(doc_id_list)]
             run_queries_results = process_pool.starmap(TSController.run_query, run_query_args)
             for query_result in run_queries_results:
                 if query_result[0] == 'OK':
@@ -64,22 +55,24 @@ class TSController:
                 else:
                     error_results.append(query_result)
 
+        if len(error_results) != 0:
+            print('Completed with ERRORS:')
+            for error_info in error_results:
+                print(error_info)
+        else:
+            print('Completed without ERRORS')
+
         summaries = sorted(summaries, key=lambda summ_info: summ_info[0])
         with codecs.open(answer_file, 'w', 'windows-1251') as file_descr:
             for story_id, summary_text in summaries:
                 file_descr.write(summary_text)
 
+        return len(summaries) == len(doc_id_list) and len(error_results) == 0
 
-        '''
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executer:
-            futures = [executer.submit(TSController.run_query, self, doc_id, answer_file, story_id)
-                       for story_id, doc_id in enumerate(doc_id_list)]
-        '''
-
-    def run_query(self, doc_id, story_id=0):
+    def run_query(self, doc_id, story_id=0, db_name='nldx'):
         #timer = SimpleTimer('TSController.run_query')
         try:
-            self.m_DataExtractor = NldxSearchEngineBridge('127.0.0.1', '2062')
+            self.m_DataExtractor = NldxSearchEngineBridge('127.0.0.1', '2062', db_name=db_name)
             self.m_QueryConstructor.init_data_extractor(self.m_DataExtractor)
             self.m_CollectionConstructor.init_data_extractor(self.m_DataExtractor)
 
@@ -92,6 +85,9 @@ class TSController:
             return 'OK', summary_text, doc_id, story_id
         except Exception as e:
             return 'ERROR', e, doc_id, story_id
+
+    def get_config(self):
+        return self.m_Config
 
     def _construct_query(self, doc_id):
         #timer = SimpleTimer('TSController._construct_query')

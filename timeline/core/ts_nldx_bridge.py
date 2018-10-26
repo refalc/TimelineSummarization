@@ -6,15 +6,14 @@ import nltk
 import re
 from .ts_primitives import *
 from ..utils.utils import SimpleTimer
-import multiprocessing
 
 
 class NldxSearchEngineBridge:
-    def __init__(self, address, port):
+    def __init__(self, address, port, db_name='nldx'):
         self.m_Address = address
         self.m_Port = port
         self.m_DBClient = MongoClient()
-        self.m_DBName = 'nldx'
+        self.m_DBName = db_name
         self.m_DBCollectionName = 'doc_content'
         if self.m_DBName not in self.m_DBClient.database_names() or \
                 self.m_DBCollectionName not in self.m_DBClient[self.m_DBName].collection_names():

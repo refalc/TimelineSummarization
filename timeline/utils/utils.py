@@ -10,12 +10,10 @@ class ConfigReader:
         self.m_Params = dict()
         self._read_config(self.m_ConfigPath)
 
-    def print_config(self):
-        print('---------------------')
-        print('config_len={}'.format(len(self.m_Params)))
-        for elem in self.m_Params:
-            print('key={} val={}'.format(elem, self.m_Params[elem]))
-        print('---------------------')
+    def config_to_str(self):
+        with codecs.open(self.m_ConfigPath, 'r') as file_descr:
+            config_data = file_descr.read()
+        return config_data
 
     def _read_config(self, path):
         with codecs.open(path, 'r') as file_descr:
