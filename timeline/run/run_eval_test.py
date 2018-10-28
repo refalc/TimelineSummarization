@@ -11,14 +11,14 @@ if __name__ == '__main__':
     evaluator.init_stop_words(stop_words_path)
     evaluator.init_reference_data(ref_data_path, mapping_data_path)
 
-    eval_out_file = r'C:\Users\Misha\source\repos\TemporalSummarizationVS\Data\26_10_18\eval_data.xml'
+    eval_out_file = r'C:\Users\Misha\source\repos\TemporalSummarizationVS\Data\28_10_18\eval_data.xml'
     docs_ids = ['10366234', '13394061', '10822682', '10482437', '10105996', '12171411', '12483331', '13197524',
                 '11872175', '11768974', '11092876', '11136413', '11155970', '13142685', '12521721']
 
     process_num = 3
 
     configs_root = r'C:\Users\Misha\source\repos\TemporalSummarizationVS\Data'
-    answers_root = r'C:\Users\Misha\source\repos\TemporalSummarizationVS\Data\26_10_18'
+    answers_root = r'C:\Users\Misha\source\repos\TemporalSummarizationVS\Data\28_10_18'
     configurations = ['no_ext', 'one_ext', 'double_ext', 'double_ext_temp', 'double_ext_temp_imp',
                       'double_ext_temp_imp_w2v']
 

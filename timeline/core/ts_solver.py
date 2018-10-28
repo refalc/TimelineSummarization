@@ -11,7 +11,7 @@ class TSSolver:
     def init_w2v_model(self, w2v_model):
         self.m_W2V_model = w2v_model
 
-    def construct_timeline_summary(self, timeline_queries, timeline_collection):
+    def construct_timeline_summary(self, timeline_queries, timeline_collection, sort_by_time=True):
         w2v_enable = bool(self.m_Config['slv_w2v'])
         if w2v_enable:
             for time, query in timeline_queries.iterate_queries():
@@ -42,8 +42,9 @@ class TSSolver:
         result_summary_size = min(len(all_extracted), timeline_summary_size)
 
         result_summary_sentences = all_extracted[:result_summary_size]
-        result_summary_sentences = sorted(result_summary_sentences, key=lambda x: utils.get_sentence_int_time(
-            x[0], min_val='minute'))
+        if sort_by_time:
+            result_summary_sentences = sorted(result_summary_sentences, key=lambda x: utils.get_sentence_int_time(
+                x[0], min_val='minute'))
         return result_summary_sentences
 
     def _extract_top_sentence(self, sentences, query, all_extracted, today_extracted, w2v_enable=False):
@@ -56,7 +57,7 @@ class TSSolver:
             ranked_sentences.append((sent, sent_score))
 
         # 2) extract top sentence
-        ranked_sentences = sorted(ranked_sentences, key=lambda x: -x[1])
+        ranked_sentences = sorted(ranked_sentences, key=lambda x: (-x[1], utils.get_sentence_int_time(x[0], 'minute')))
         #print(ranked_sentences)
         top_sentence_pair = ranked_sentences[0]
         if top_sentence_pair[1] < min_mmr:

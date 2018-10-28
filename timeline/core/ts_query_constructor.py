@@ -13,23 +13,16 @@ class TSQueryConstructor:
 
     def construct_query(self, doc_id):
         query = self._construct_query_l1(doc_id)
-        print('doc_id = {}'.format(doc_id))
-        print('l1 query:')
-        print(query.get_index('ЛЕММА'))
-        print(query.get_index('ТЕРМИН'))
+        print('query_l1: {}'.format(query.get_index('ЛЕММА')))
         int_date = query.get_meta_data('INT_DATE')
         query_constr_ext = self.m_Config['query_constr_ext']
         if query_constr_ext:
             query = self._construct_query_l2(query)
-            print('l2 query:')
-            print(query.get_index('ЛЕММА'))
-            print(query.get_index('ТЕРМИН'))
+            print('query_l2: {}'.format(query.get_index('ЛЕММА')))
             query_constr_double_ext = self.m_Config['query_constr_double_ext']
             if query_constr_double_ext:
                 query = self._construct_query_l3(query)
-                print('l3 query:')
-                print(query.get_index('ЛЕММА'))
-                print(query.get_index('ТЕРМИН'))
+                print('query_l3: {}'.format(query.get_index('ЛЕММА')))
 
         query.add_meta_data('INT_DATE', int_date)
         return query
@@ -45,9 +38,6 @@ class TSQueryConstructor:
         for item_name, item in index_data.items():
             if item.m_Weight >= top_k_weight:
                 top_k_item_list.append(item)
-
-        #if len(top_k_item_list) > top_k:
-            #top_k_item_list = sorted(top_k_item_list, key=lambda x: (-x.m_Weight, x.m_Name))[:top_k]
 
         return top_k_item_list
 

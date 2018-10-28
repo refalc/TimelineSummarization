@@ -26,21 +26,19 @@ class TSCollectionConstructor:
 
         index_type_list = ['ЛЕММА', 'СЛОВО', 'ТЕРМИН']
 
-        '''
-        call_query = TSQuery()
-        for index_type in index_type_list:
-            modality_list = self.m_Config['query_l1_modality_list']
-            if index_type not in modality_list:
-                continue
-            top_k = modality_list[index_type]['result_query_size']
-            index_data = query.get_index(index_type).get_index_data()
-            top_k_items = TSQueryConstructor._get_index_top_k_items(index_data, top_k)
-            for item in top_k_items:
-                call_query.add_index_item(item)
+        if self.m_Config['constr_coll_cut_query']:
+            call_query = TSQuery()
+            for index_type in index_type_list:
+                top_k = self.m_Config['constr_coll_cut_query_size']
+                index_data = query.get_index(index_type).get_index_data()
+                top_k_items = TSQueryConstructor._get_index_top_k_items(index_data, top_k)
+                for item in top_k_items:
+                    call_query.add_index_item(item)
 
-        collection = self.m_DataExtractor.retrieve_docs_coll(call_query, call_params)
-        '''
-        collection = self.m_DataExtractor.retrieve_docs_coll(query, call_params)
+            collection = self.m_DataExtractor.retrieve_docs_coll(call_query, call_params)
+        else:
+            collection = self.m_DataExtractor.retrieve_docs_coll(query, call_params)
+
         timeline_collection = TSTimeLineCollections()
         temporal_mode = self.m_Config['temporal']
         importance_mode = self.m_Config['importance']
