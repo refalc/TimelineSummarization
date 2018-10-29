@@ -3,7 +3,7 @@ from .ts_collection_constructor import TSCollectionConstructor
 from .ts_query_constructor import TSQueryConstructor
 from .ts_solver import TSSolver
 from .ts_primitives import TSTimeLineQueries
-from ..utils.utils import ConfigReader, SimpleTimer, get_document_int_time, SimpleLogger
+from ..utils.utils import ConfigReader, SimpleTimer, get_document_int_time, TSLogger
 from gensim.models import KeyedVectors
 import multiprocessing
 import codecs
@@ -17,9 +17,14 @@ def init_process(log_queue, nldx_lock=None):
         __nldx_lock = nldx_lock
 
     logger_queue_handler = QueueHandler(log_queue)
-    logger = logging.getLogger('timeline_logger')
+    logger = logging.getLogger('timeline_file_logger')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logger_queue_handler)
+
+    logger = logging.getLogger('timeline_console_logger')
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logger_queue_handler)
+
 
 class TSController:
     def __init__(self, path_to_config):
@@ -40,9 +45,13 @@ class TSController:
         logging_queue = multiprocessing.Queue(-1)
         init_process(logging_queue)
 
-        log_file = r'C:\!DEV\C++\TemporalSummarization\TemporalSummarizationVS\Data\mp_log.txt'
-        logger = SimpleLogger(logging_queue, log_file)
+        log_file = r'C:\Users\Misha\source\repos\TemporalSummarizationVS\Data\mp_log.txt'
+        logger = TSLogger(logging_queue, log_file)
         logger.run_logger()
+
+        info_msg = 'Test MSG'
+        logging.getLogger('timeline_file_logger').info(info_msg)
+        process_pool = None
         try:
             timer = SimpleTimer('TSController.run_queries')
 
@@ -74,11 +83,15 @@ class TSController:
 
             return len(summaries) == len(doc_id_list) and len(error_results) == 0
         finally:
+            process_pool.close()
+            process_pool.join()
+
             logger.stop_logger()
 
     def run_query(self, doc_id, story_id=0, db_name='nldx'):
-        #timer = SimpleTimer('TSController.run_query')
+        # timer = SimpleTimer('TSController.run_query')
         try:
+            logging.getLogger('timeline_console_logger').info('Start doc_id={} story_id={}'.format(doc_id, story_id))
             self.m_DataExtractor = NldxSearchEngineBridge('127.0.0.1', '2062', db_name=db_name)
             self.m_QueryConstructor.init_data_extractor(self.m_DataExtractor)
             self.m_CollectionConstructor.init_data_extractor(self.m_DataExtractor)
@@ -87,25 +100,29 @@ class TSController:
             timeline_collection = self._construct_collection(query)
             timeline_queries = self._construct_timeline_queries(query, timeline_collection)
             timeline_summary = self._construct_timeline_summary(timeline_queries, timeline_collection)
-            #self._save_summary(timeline_summary, timeline_queries, doc_id, story_id, answer_file)
             summary_text = self._gen_summary_text(timeline_summary, timeline_queries, doc_id, story_id)
-            return 'OK', summary_text, doc_id, story_id
+            run_result = ('OK', summary_text, doc_id, story_id)
         except Exception as e:
-            return 'ERROR', e, doc_id, story_id
+            run_result = ('ERROR', e, doc_id, story_id)
+
+        logging.getLogger('timeline_console_logger').info(
+            'End doc_id={} story_id={} with code={}'.format(doc_id, story_id, run_result[0]))
+
+        return run_result
 
     def get_config(self):
         return self.m_Config
 
     def _construct_query(self, doc_id):
-        #timer = SimpleTimer('TSController._construct_query')
+        # timer = SimpleTimer('TSController._construct_query')
         return self.m_QueryConstructor.construct_query(doc_id)
 
     def _construct_collection(self, query):
-        #timer = SimpleTimer('TSController._construct_collection')
+        # timer = SimpleTimer('TSController._construct_collection')
         return self.m_CollectionConstructor.construct_collection(query)
 
     def _construct_timeline_queries(self, query, timeline_collection):
-        #timer = SimpleTimer('TSController._construct_timeline_queries')
+        # timer = SimpleTimer('TSController._construct_timeline_queries')
         timeline_queries = TSTimeLineQueries()
         query_int_date = query.get_meta_data('INT_DATE')
         timeline_queries.add_query(query, query_int_date)
@@ -114,7 +131,7 @@ class TSController:
         importance_mode = self.m_Config['importance']
         if temporal_mode and importance_mode:
             for doc_id in timeline_collection.get_top_docs():
-                doc_int_date = get_document_int_time(timeline_collection.get_doc(doc_id), min_val='day')
+                doc_int_date = get_document_int_time(timeline_collection.get_doc(doc_id), min_val_tag='day')
                 if timeline_queries.check_time(doc_int_date):
                     continue
                 top_doc_query = self.m_QueryConstructor.construct_query(doc_id)
@@ -123,10 +140,11 @@ class TSController:
         return timeline_queries
 
     def _construct_timeline_summary(self, timeline_queries, timeline_collection):
-        #timer = SimpleTimer('TSController._construct_timeline_summary')
+        # timer = SimpleTimer('TSController._construct_timeline_summary')
         return self.m_Solver.construct_timeline_summary(timeline_queries, timeline_collection)
 
-    def _gen_summary_text(self, timeline_summary, timeline_queries, doc_id, story_id):
+    @staticmethod
+    def _gen_summary_text(timeline_summary, timeline_queries, doc_id, story_id):
         summary_text = ''
         summary_text += '<story id={} init_doc_id={}>\r\n'.format(story_id, doc_id)
         summary_text += '<queries>\r\n'
@@ -155,36 +173,3 @@ class TSController:
         summary_text += '</summary>\r\n'
         summary_text += '</story>\r\n'
         return summary_text
-
-    def _save_summary(self, timeline_summary, timeline_queries, doc_id, story_id, answer_file):
-        #timer = SimpleTimer('TSController._save_summary')
-        summary_text = ''
-        summary_text += '<story id={} init_doc_id={}>\r\n'.format(story_id, doc_id)
-        summary_text += '<queries>\r\n'
-        for time, query in timeline_queries.iterate_queries():
-            summary_text += '<query int_date={}>\r\n'.format(time)
-            summary_text += '<lemmas>\r\n'
-            summary_text += str(query.get_index('ЛЕММА')) + '\r\n'
-            summary_text += '</lemmas>\r\n'
-            summary_text += '<termins>\r\n'
-            summary_text += str(query.get_index('ТЕРМИН')) + '\r\n'
-            summary_text += '</termins>\r\n'
-            summary_text += '</query>\r\n'
-        summary_text += '</queries>\r\n'
-
-        summary_text += '</summary>\r\n'
-        for i in range(0, len(timeline_summary)):
-            summary_text += '<sentence id={} mmr={}>\r\n'.format(i + 1, timeline_summary[i][1])
-            sentence = timeline_summary[i][0]
-            parent_doc = sentence.get_parent_doc()
-            summary_text += '<metadata date={} site={} title={} doc_id={} sent_num={}\\>\r\n'.format(
-                parent_doc.get_meta_data('DATE'), parent_doc.get_meta_data('SITE'), parent_doc.get_meta_data('TITLE'),
-                parent_doc.get_doc_id(), sentence.get_sentence_id()
-            )
-            summary_text += sentence.get_meta_data('raw_view') + '\r\n'
-            summary_text += '</sentence>\r\n'
-        summary_text += '</summary>\r\n'
-        summary_text += '</story>\r\n'
-
-        with codecs.open(answer_file, 'a', 'windows-1251') as file_descr:
-            file_descr.write(summary_text)

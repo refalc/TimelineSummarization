@@ -1,6 +1,7 @@
 from .ts_primitives import *
 from ..utils import utils
 import numpy as np
+import logging
 
 
 class TSQueryConstructor:
@@ -13,16 +14,21 @@ class TSQueryConstructor:
 
     def construct_query(self, doc_id):
         query = self._construct_query_l1(doc_id)
-        print('query_l1: {}'.format(query.get_index('ЛЕММА')))
+        info_msg = 'query_l1: {}'.format(query.get_index('ЛЕММА'))
+        logging.getLogger('timeline_file_logger').info(info_msg)
+
         int_date = query.get_meta_data('INT_DATE')
         query_constr_ext = self.m_Config['query_constr_ext']
         if query_constr_ext:
             query = self._construct_query_l2(query)
-            print('query_l2: {}'.format(query.get_index('ЛЕММА')))
+            info_msg = 'query_l2: {}'.format(query.get_index('ЛЕММА'))
+            logging.getLogger('timeline_file_logger').info(info_msg)
+
             query_constr_double_ext = self.m_Config['query_constr_double_ext']
             if query_constr_double_ext:
                 query = self._construct_query_l3(query)
-                print('query_l3: {}'.format(query.get_index('ЛЕММА')))
+                info_msg = 'query_l3: {}'.format(query.get_index('ЛЕММА'))
+                logging.getLogger('timeline_file_logger').info(info_msg)
 
         query.add_meta_data('INT_DATE', int_date)
         return query
@@ -80,7 +86,7 @@ class TSQueryConstructor:
             for item in top_k_item_list:
                 query_l1.add_index_item(item)
 
-        init_doc_int_time = utils.get_document_int_time(document, min_val='day')
+        init_doc_int_time = utils.get_document_int_time(document, min_val_tag='day')
         query_l1.add_meta_data('INT_DATE', init_doc_int_time)
 
         return query_l1

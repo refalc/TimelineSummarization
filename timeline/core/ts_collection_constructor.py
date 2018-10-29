@@ -44,7 +44,7 @@ class TSCollectionConstructor:
         importance_mode = self.m_Config['importance']
         if temporal_mode:
             for doc in collection.iterate_docs():
-                int_time = utils.get_document_int_time(doc, min_val='day')
+                int_time = utils.get_document_int_time(doc, min_val_tag='day')
                 timeline_collection.add_doc(doc, int_time)
         else:
             timeline_collection.add_collection(collection, 0)

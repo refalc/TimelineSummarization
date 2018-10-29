@@ -22,7 +22,7 @@ class TSDocRepr:
         return self.m_Importance
 
     def _calc_date(self):
-        return utils.get_document_int_time(self.m_Doc, min_val='minute')
+        return utils.get_document_int_time(self.m_Doc, min_val_tag='minute')
 
     def get_date(self):
         return self.m_FloatDate

@@ -4,6 +4,7 @@ import json
 import datetime
 from logging.handlers import QueueListener
 import logging
+import sys
 
 
 class ConfigReader:
@@ -45,7 +46,7 @@ class ConfigReader:
         return self.m_Params.get(item, None)
 
 
-def get_document_int_time(document, min_val='day'):
+def get_document_int_time(document, min_val_tag='day'):
     date_str = document.get_meta_data('DATE')
     day = date_str[0:2]
     month = date_str[3:5]
@@ -59,13 +60,13 @@ def get_document_int_time(document, min_val='day'):
 
     mult = -1
     full_val = 0
-    for val in time_data:
+    for tag, cur_mult, val in time_data:
         if mult > 0:
-            mult *= val[1]
-            full_val += mult * int(val[2])
-        if val[0] == min_val:
+            mult *= cur_mult
+            full_val += mult * int(val)
+        if tag == min_val_tag:
             mult = 1
-            full_val += mult * int(val[2])
+            full_val += mult * int(val)
 
     if mult < 0:
         raise Exception('ERROR: time info gen error')
@@ -73,9 +74,9 @@ def get_document_int_time(document, min_val='day'):
     return full_val
 
 
-def get_sentence_int_time(sentence, min_val='sec'):
+def get_sentence_int_time(sentence, min_val_tag='sec'):
     sentence_doc = sentence.get_parent_doc()
-    return get_document_int_time(sentence_doc, min_val)
+    return get_document_int_time(sentence_doc, min_val_tag)
 
 
 class SimpleTimer:
@@ -86,24 +87,39 @@ class SimpleTimer:
     def __del__(self):
         self.m_EndTime = datetime.datetime.now()
         total_second = (self.m_EndTime - self.m_StartTime).total_seconds()
-        print('Process function={} for {}s'.format(self.m_FuncName, total_second))
+        info_msg = 'Process function={} for {}s'.format(self.m_FuncName, total_second)
+        logging.getLogger('timeline_file_logger').info(info_msg)
 
 
-class SimpleLogger:
+class TSQueueListener(QueueListener):
+    def __init__(self, queue, handlers_dict):
+        handlers_list = [val for key, val in handlers_dict.items()]
+        super(TSQueueListener, self).__init__(queue, *handlers_list)
+        self.log_to_handler = handlers_dict
+
+    def handle(self, record):
+        record = self.prepare(record)
+        handler = self.log_to_handler.get(record.name, None)
+        if handler is not None:
+            handler.handle(record)
+
+
+class TSLogger:
     def __init__(self, queue, log_file):
         self.m_Queue = queue
         self.m_LogFile = log_file
         self.m_Listener = None
 
     def run_logger(self):
-        handler = logging.FileHandler(self.m_LogFile)
-        formatter = logging.Formatter('%(asctime)s %(processName)-10s %(message)s')
-        handler.setFormatter(formatter)
-        self.m_Listener = QueueListener(self.m_Queue, handler)
+        file_handler = logging.FileHandler(self.m_LogFile)
+        console_handler = logging.StreamHandler(sys.stdout)
+        file_formatter = logging.Formatter('%(asctime)s %(levelname)s %(processName)-10s %(message)s')
+        console_formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        file_handler.setFormatter(file_formatter)
+        console_handler.setFormatter(console_formatter)
+        self.m_Listener = TSQueueListener(self.m_Queue, {'timeline_file_logger': file_handler,
+                                                         'timeline_console_logger': console_handler})
         self.m_Listener.start()
-        logger = logging.getLogger()
-        logger.setLevel(logging.DEBUG)
-        logger.addHandler(handler)
 
     def stop_logger(self):
         self.m_Listener.stop()

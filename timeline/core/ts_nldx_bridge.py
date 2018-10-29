@@ -22,20 +22,16 @@ class NldxSearchEngineBridge:
                                                                                  unique=True)
         info_msg = 'Loaded collection with {} docs'.format(
             self.m_DBClient[self.m_DBName][self.m_DBCollectionName].count())
-        logging.getLogger('timeline_logger').info(info_msg)
-        #print('Loaded collection with {} docs'.format(self.m_DBClient[self.m_DBName][self.m_DBCollectionName].count()))
+        logging.getLogger('timeline_file_logger').info(info_msg)
+
         self.m_DBParsedCollectionName = 'parsed_doc_content'
         if self.m_DBName not in self.m_DBClient.database_names() or \
                 self.m_DBParsedCollectionName not in self.m_DBClient[self.m_DBName].collection_names():
             self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].create_index([('doc_id', pymongo.ASCENDING)],
                                                                                        unique=True)
-        #self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].remove()
-        #print('Loaded parsed collection with {} docs'.format(
-            #self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].count()))
-
         info_msg = 'Loaded parsed collection with {} docs'.format(
             self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].count())
-        logging.getLogger('timeline_logger').info(info_msg)
+        logging.getLogger('timeline_file_logger').info(info_msg)
 
         self.m_StopWords = [elem.upper() for elem in nltk.corpus.stopwords.words('russian')]
         self.m_StopWords += ['HDR', 'CIR', 'CIR_HDR', 'CIRHDR', 'CIRPAR', 'NUM']
@@ -45,8 +41,6 @@ class NldxSearchEngineBridge:
             self.m_Lock = __nldx_lock
         except Exception as e:
             self.m_Lock = None
-
-        #logging.getLogger('requests').setLevel(logging.WARNING)
 
     def retrieve_docs(self, query, params):
         common_query_list = []
@@ -64,9 +58,8 @@ class NldxSearchEngineBridge:
                       'reqtext': '+'.join(query_list)}
         req_query = 'http://{}:{}'.format(self.m_Address, self.m_Port)
 
-        #print('ir request={}'.format(req_params))
         info_msg = 'ir request={}'.format(req_params)
-        logging.getLogger('timeline_logger').info(info_msg)
+        logging.getLogger('timeline_file_logger').info(info_msg)
         if self.m_Lock is not None:
             self.m_Lock.acquire()
             try:
@@ -77,9 +70,8 @@ class NldxSearchEngineBridge:
             req_res = requests.get(req_query, req_params)
 
         if len(req_res.text) == 0:
-            #print(req_res)
             info_msg = str(req_res)
-            logging.getLogger('timeline_logger').error(info_msg)
+            logging.getLogger('timeline_file_logger').error(info_msg)
             return []
 
         docs = []
@@ -93,7 +85,7 @@ class NldxSearchEngineBridge:
             docs.append((doc_id, doc_rank_w))
         if len(docs) == 0:
             info_msg = str(req_res.text)
-            logging.getLogger('timeline_logger').error(info_msg)
+            logging.getLogger('timeline_file_logger').error(info_msg)
         return docs
 
     def retrieve_docs_coll(self, query, params):
@@ -101,14 +93,16 @@ class NldxSearchEngineBridge:
         collection = TSCollection()
         recieved_docs = self.retrieve_docs(query, params)
 
-        print('Retrieved {} doc ids'.format(len(recieved_docs)))
+        info_msg = 'Retrieved {} doc ids'.format(len(recieved_docs))
+        logging.getLogger('timeline_file_logger').info(info_msg)
         for doc_data in recieved_docs:
             doc_id = doc_data[0]
             document = self.retrieve_doc(doc_id)
             if document is not None:
                 collection.add_doc(document)
 
-        print('Retrieved {} docs'.format(len(collection.get_docs())))
+        info_msg = 'Retrieved {} docs'.format(len(collection.get_docs()))
+        logging.getLogger('timeline_file_logger').info(info_msg)
         return collection
 
     def retrieve_doc(self, doc_id):
@@ -160,7 +154,8 @@ class NldxSearchEngineBridge:
         self.m_DBClient[self.m_DBName][self.m_DBCollectionName].insert_one({'doc_id': doc_id, 'data': req_text})
         return req_text
 
-    def _extract_meta_data(self, document, doc_content):
+    @staticmethod
+    def _extract_meta_data(document, doc_content):
         meta_dict = {'DATE': 'KRMN_DATE', 'LENGTH': 'KRMN_LENGTH', 'SITE': 'KRMN_SITE', 'TITLE': 'KRMN_TITLE'}
         for meta_name, meta_pattern in meta_dict.items():
             meta_data = re.search(re.escape(meta_pattern) + '(.*?)= (.*?)<BR>', doc_content)
@@ -287,22 +282,15 @@ class NldxSearchEngineBridge:
         self._extract_index_data(document, doc_content)
         return document
 
-    def _parse_pos_info(self, pos_info):
+    @staticmethod
+    def _parse_pos_info(pos_info):
         results = []
         pos_datas = pos_info.replace('\n', '').replace('\r', '').split(',')
         for pos_data in pos_datas:
             entity_pos = int(pos_data[:pos_data.find('(')])
             entity_len = int(pos_data[pos_data.find('(') + 1:pos_data.find(')')])
             entity_sent = int(pos_data[pos_data.find('[') + 1:pos_data.find(']')])
-            '''
-            pos_reg_data = re.search('(.*?)\((.*?)\)\[(.*?)\]', pos_data)
-            if pos_reg_data is None:
-                raise Exception('pos_reg_data is None')
 
-            entity_pos = int(pos_reg_data.group(1))
-            entity_len = int(pos_reg_data.group(2))
-            entity_sent = int(pos_reg_data.group(3))
-            '''
             results.append((entity_pos, entity_len, entity_sent))
 
         return results

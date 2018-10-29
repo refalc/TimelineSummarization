@@ -44,7 +44,7 @@ class TSSolver:
         result_summary_sentences = all_extracted[:result_summary_size]
         if sort_by_time:
             result_summary_sentences = sorted(result_summary_sentences, key=lambda x: (utils.get_sentence_int_time(
-                x[0], min_val='minute'), x[0].get_label(), x[0].get_sentence_id()))
+                x[0], min_val_tag='minute'), x[0].get_label(), x[0].get_sentence_id()))
         return result_summary_sentences
 
     def _extract_top_sentence(self, sentences, query, all_extracted, today_extracted, w2v_enable=False):
