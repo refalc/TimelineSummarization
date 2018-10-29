@@ -144,14 +144,40 @@ class TSEvaluator:
                 metric_results = self.get_metric_results(ref_sentences, hypo_sentences, rouge_calculator,
                                                          available_metrics)
             elif mode == 'sent_by_sent':
+                recall_metric_results = None
                 for ref_sent in ref_sentences:
                     ref_best_metric_result = None
                     for hypo_sent in hypo_sentences:
                         cur_metric_results = self.get_metric_results(ref_sent, hypo_sent, rouge_calculator,
                                                                      available_metrics)
                         ref_best_metric_result = self._get_best_metric(cur_metric_results, ref_best_metric_result)
-                    metric_results = self._merge_metric_results(metric_results, ref_best_metric_result)
-                metric_results = self._devide_metric_results_by(metric_results, len(ref_sentences))
+                    recall_metric_results = self._merge_metric_results(recall_metric_results, ref_best_metric_result)
+                recall_metric_results = self._devide_metric_results_by(recall_metric_results, len(ref_sentences))
+
+                precision_metric_results = None
+                for hypo_sent in hypo_sentences:
+                    hypo_best_metric_result = None
+                    for ref_sent in ref_sentences:
+                        cur_metric_results = self.get_metric_results(ref_sent, hypo_sent, rouge_calculator,
+                                                                     available_metrics)
+                        hypo_best_metric_result = self._get_best_metric(cur_metric_results, hypo_best_metric_result)
+                    precision_metric_results = self._merge_metric_results(precision_metric_results,
+                                                                          hypo_best_metric_result)
+                precision_metric_results = self._devide_metric_results_by(precision_metric_results, len(hypo_sentences))
+                metric_results = {metric: {'r': 0.0, 'p': 0.0, 'f': 0.0} for metric in available_metrics}
+                for metric in available_metrics:
+                    recall_value = 0.0
+                    precision_value = 0.0
+                    f1_value = 0.0
+                    if recall_metric_results is not None:
+                        recall_value = recall_metric_results[metric]['r']
+                    if precision_metric_results is not None:
+                        precision_value = precision_metric_results[metric]['p']
+                    if precision_value + recall_value > 0:
+                        f1_value = 2.0 * recall_value * precision_value / (precision_value + recall_value)
+                    metric_results[metric]['r'] = recall_value
+                    metric_results[metric]['p'] = precision_value
+                    metric_results[metric]['f'] = f1_value
             else:
                 raise Exception('ERROR: incorrect mode')
 

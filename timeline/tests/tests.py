@@ -28,16 +28,20 @@ class RegTest:
 
             res = self.m_Controller.run_queries(self.m_DocIds, self.m_GenFilePath, self.m_ProcessNum, db_name)
             if not res:
-                return False
-            res = res and self._cmp_results()
+                return 'ERROR', 'run_queries'
+            res = self._cmp_results()
             if not res:
-                return False
+                return 'ERROR', '_cmp_results'
 
         res = self.m_Controller.run_queries(self.m_DocIds, self.m_GenFilePath, self.m_ProcessNum, db_name)
         if not res:
-            return False
+            return 'ERROR', 'run_queries'
 
-        return res and self._cmp_results()
+        res = self._cmp_results()
+        if not res:
+            return 'ERROR', '_cmp_results'
+
+        return 'OK', ''
 
     def _cmp_results(self):
         try:

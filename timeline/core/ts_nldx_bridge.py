@@ -6,6 +6,7 @@ import nltk
 import re
 from .ts_primitives import *
 from ..utils.utils import SimpleTimer
+import logging
 
 
 class NldxSearchEngineBridge:
@@ -19,24 +20,33 @@ class NldxSearchEngineBridge:
                 self.m_DBCollectionName not in self.m_DBClient[self.m_DBName].collection_names():
             self.m_DBClient[self.m_DBName][self.m_DBCollectionName].create_index([('doc_id', pymongo.ASCENDING)],
                                                                                  unique=True)
-        print('Loaded collection with {} docs'.format(self.m_DBClient[self.m_DBName][self.m_DBCollectionName].count()))
+        info_msg = 'Loaded collection with {} docs'.format(
+            self.m_DBClient[self.m_DBName][self.m_DBCollectionName].count())
+        logging.getLogger('timeline_logger').info(info_msg)
+        #print('Loaded collection with {} docs'.format(self.m_DBClient[self.m_DBName][self.m_DBCollectionName].count()))
         self.m_DBParsedCollectionName = 'parsed_doc_content'
         if self.m_DBName not in self.m_DBClient.database_names() or \
                 self.m_DBParsedCollectionName not in self.m_DBClient[self.m_DBName].collection_names():
             self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].create_index([('doc_id', pymongo.ASCENDING)],
                                                                                        unique=True)
         #self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].remove()
-        print('Loaded parsed collection with {} docs'.format(
-            self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].count()))
+        #print('Loaded parsed collection with {} docs'.format(
+            #self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].count()))
+
+        info_msg = 'Loaded parsed collection with {} docs'.format(
+            self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].count())
+        logging.getLogger('timeline_logger').info(info_msg)
 
         self.m_StopWords = [elem.upper() for elem in nltk.corpus.stopwords.words('russian')]
         self.m_StopWords += ['HDR', 'CIR', 'CIR_HDR', 'CIRHDR', 'CIRPAR', 'NUM']
 
         self.m_HashedDocs = dict()
         try:
-            self.m_Lock = lock
+            self.m_Lock = __nldx_lock
         except Exception as e:
             self.m_Lock = None
+
+        #logging.getLogger('requests').setLevel(logging.WARNING)
 
     def retrieve_docs(self, query, params):
         common_query_list = []
@@ -54,8 +64,9 @@ class NldxSearchEngineBridge:
                       'reqtext': '+'.join(query_list)}
         req_query = 'http://{}:{}'.format(self.m_Address, self.m_Port)
 
-        print('ir request={}'.format(req_params))
-
+        #print('ir request={}'.format(req_params))
+        info_msg = 'ir request={}'.format(req_params)
+        logging.getLogger('timeline_logger').info(info_msg)
         if self.m_Lock is not None:
             self.m_Lock.acquire()
             try:
@@ -66,7 +77,9 @@ class NldxSearchEngineBridge:
             req_res = requests.get(req_query, req_params)
 
         if len(req_res.text) == 0:
-            print(req_res)
+            #print(req_res)
+            info_msg = str(req_res)
+            logging.getLogger('timeline_logger').error(info_msg)
             return []
 
         docs = []
@@ -79,7 +92,8 @@ class NldxSearchEngineBridge:
 
             docs.append((doc_id, doc_rank_w))
         if len(docs) == 0:
-            print(req_res.text)
+            info_msg = str(req_res.text)
+            logging.getLogger('timeline_logger').error(info_msg)
         return docs
 
     def retrieve_docs_coll(self, query, params):
@@ -168,8 +182,6 @@ class NldxSearchEngineBridge:
         re_tr = re.compile('<tr><td>(.*?)</td><td>(.*?)</td><td><b>(.*?)</b></td><td>(.*?)</td>'
                            '<td>(.*?)</td><td>(.*?)</td></tr>', re.DOTALL)
 
-        if document.get_doc_id() == 10381755:
-            print(10381755)
         lemmas_pos_index = dict()
         max_pos_index = 0
         for tr in re.findall(re_tr, entity_table):

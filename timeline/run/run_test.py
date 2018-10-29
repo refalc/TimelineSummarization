@@ -18,9 +18,15 @@ if __name__ == '__main__':
     if len(answers) != len(configs):
         raise Exception('ERROR: len(answers) != len(configs)')
 
+    test_results = []
+    process_nums = 2
     for i in range(0, len(configs)):
-        reg_test = RegTest(answers[i], configs[i], docs_ids, process_num=2)
-        if not reg_test.run_reg_test():
-            raise Exception('ERROR: reg test {} failed'.format(configs[i]))
+        reg_test = RegTest(answers[i], configs[i], docs_ids, process_num=process_nums)
+        reg_test_res = reg_test.run_reg_test()
+        test_results.append((reg_test_res, (answers[i], configs[i], docs_ids, process_nums)))
+
+    for res in test_results:
+        if res[0][0] == 'OK':
+            print('Test is OK. Params: {}'.format(res[1]))
         else:
-            print('Test {} is OK'.format(configs[i]))
+            print('Test failed. Params: {}'.format(res[1]))

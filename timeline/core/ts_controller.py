@@ -3,16 +3,23 @@ from .ts_collection_constructor import TSCollectionConstructor
 from .ts_query_constructor import TSQueryConstructor
 from .ts_solver import TSSolver
 from .ts_primitives import TSTimeLineQueries
-from ..utils.utils import ConfigReader, SimpleTimer, get_document_int_time
+from ..utils.utils import ConfigReader, SimpleTimer, get_document_int_time, SimpleLogger
 from gensim.models import KeyedVectors
 import multiprocessing
 import codecs
+from logging.handlers import QueueHandler
+import logging
 
 
-def init_pool(my_lock):
-    global lock
-    lock = my_lock
+def init_process(log_queue, nldx_lock=None):
+    if nldx_lock is not None:
+        global __nldx_lock
+        __nldx_lock = nldx_lock
 
+    logger_queue_handler = QueueHandler(log_queue)
+    logger = logging.getLogger('timeline_logger')
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logger_queue_handler)
 
 class TSController:
     def __init__(self, path_to_config):
@@ -30,23 +37,21 @@ class TSController:
             self.m_Solver.init_w2v_model(self.m_W2V_model)
 
     def run_queries(self, doc_id_list, answer_file, processes=1, db_name='nldx'):
-        timer = SimpleTimer('TSController.run_queries')
+        logging_queue = multiprocessing.Queue(-1)
+        init_process(logging_queue)
 
-        summaries = []
-        error_results = []
+        log_file = r'C:\!DEV\C++\TemporalSummarization\TemporalSummarizationVS\Data\mp_log.txt'
+        logger = SimpleLogger(logging_queue, log_file)
+        logger.run_logger()
+        try:
+            timer = SimpleTimer('TSController.run_queries')
 
-        single_process = True if processes <= 1 else False
-        if single_process:
-            for story_id, doc_id in enumerate(doc_id_list):
-                query_result = self.run_query(doc_id, story_id, db_name=db_name)
-                if query_result[0] == 'OK':
-                    summaries.append((query_result[3], query_result[1]))
-                else:
-                    error_results.append(query_result)
-        else:
+            summaries = []
+            error_results = []
+
             run_queries_lock = multiprocessing.Lock()
-            process_pool = multiprocessing.Pool(processes=processes, initializer=init_pool,
-                                                initargs=(run_queries_lock, ))
+            process_pool = multiprocessing.Pool(processes=processes, initializer=init_process,
+                                                initargs=(logging_queue, run_queries_lock))
             run_query_args = [(self, doc_id, story_id, db_name) for story_id, doc_id in enumerate(doc_id_list)]
             run_queries_results = process_pool.starmap(TSController.run_query, run_query_args)
             for query_result in run_queries_results:
@@ -55,19 +60,21 @@ class TSController:
                 else:
                     error_results.append(query_result)
 
-        if len(error_results) != 0:
-            print('Completed with ERRORS:')
-            for error_info in error_results:
-                print(error_info)
-        else:
-            print('Completed without ERRORS')
+            if len(error_results) != 0:
+                print('Completed with ERRORS:')
+                for error_info in error_results:
+                    print(error_info)
+            else:
+                print('Completed without ERRORS')
 
-        summaries = sorted(summaries, key=lambda summ_info: summ_info[0])
-        with codecs.open(answer_file, 'w', 'windows-1251') as file_descr:
-            for story_id, summary_text in summaries:
-                file_descr.write(summary_text)
+            summaries = sorted(summaries, key=lambda summ_info: summ_info[0])
+            with codecs.open(answer_file, 'w', 'windows-1251') as file_descr:
+                for story_id, summary_text in summaries:
+                    file_descr.write(summary_text)
 
-        return len(summaries) == len(doc_id_list) and len(error_results) == 0
+            return len(summaries) == len(doc_id_list) and len(error_results) == 0
+        finally:
+            logger.stop_logger()
 
     def run_query(self, doc_id, story_id=0, db_name='nldx'):
         #timer = SimpleTimer('TSController.run_query')

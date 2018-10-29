@@ -2,6 +2,8 @@ import codecs
 import re
 import json
 import datetime
+from logging.handlers import QueueListener
+import logging
 
 
 class ConfigReader:
@@ -85,3 +87,23 @@ class SimpleTimer:
         self.m_EndTime = datetime.datetime.now()
         total_second = (self.m_EndTime - self.m_StartTime).total_seconds()
         print('Process function={} for {}s'.format(self.m_FuncName, total_second))
+
+
+class SimpleLogger:
+    def __init__(self, queue, log_file):
+        self.m_Queue = queue
+        self.m_LogFile = log_file
+        self.m_Listener = None
+
+    def run_logger(self):
+        handler = logging.FileHandler(self.m_LogFile)
+        formatter = logging.Formatter('%(asctime)s %(processName)-10s %(message)s')
+        handler.setFormatter(formatter)
+        self.m_Listener = QueueListener(self.m_Queue, handler)
+        self.m_Listener.start()
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(handler)
+
+    def stop_logger(self):
+        self.m_Listener.stop()

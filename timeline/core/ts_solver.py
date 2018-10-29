@@ -43,8 +43,8 @@ class TSSolver:
 
         result_summary_sentences = all_extracted[:result_summary_size]
         if sort_by_time:
-            result_summary_sentences = sorted(result_summary_sentences, key=lambda x: utils.get_sentence_int_time(
-                x[0], min_val='minute'))
+            result_summary_sentences = sorted(result_summary_sentences, key=lambda x: (utils.get_sentence_int_time(
+                x[0], min_val='minute'), x[0].get_label(), x[0].get_sentence_id()))
         return result_summary_sentences
 
     def _extract_top_sentence(self, sentences, query, all_extracted, today_extracted, w2v_enable=False):
@@ -57,7 +57,10 @@ class TSSolver:
             ranked_sentences.append((sent, sent_score))
 
         # 2) extract top sentence
-        ranked_sentences = sorted(ranked_sentences, key=lambda x: (-x[1], utils.get_sentence_int_time(x[0], 'minute')))
+        ranked_sentences = sorted(ranked_sentences,
+                                  key=lambda x: (-x[1], utils.get_sentence_int_time(x[0], 'minute'),
+                                                 x[0].get_label(), x[0].get_sentence_id()))
+
         #print(ranked_sentences)
         top_sentence_pair = ranked_sentences[0]
         if top_sentence_pair[1] < min_mmr:
