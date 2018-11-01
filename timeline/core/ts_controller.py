@@ -50,8 +50,6 @@ class TSController:
         logger = TSLogger(logging_queue, self.m_LogFile)
         logger.run_logger()
 
-        info_msg = 'Test MSG'
-        logging.getLogger('timeline_file_logger').info(info_msg)
         process_pool = None
         try:
             timer = SimpleTimer('TSController.run_queries')
