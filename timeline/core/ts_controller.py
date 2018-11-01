@@ -27,7 +27,7 @@ def init_process(log_queue, nldx_lock=None):
 
 
 class TSController:
-    def __init__(self, path_to_config):
+    def __init__(self, path_to_config, log_file='./ts_log.txt'):
         self.m_DataExtractor = None
         self.m_Config = ConfigReader(path_to_config)
         if self.m_Config['di_w2v'] or self.m_Config['slv_w2v']:
@@ -41,12 +41,13 @@ class TSController:
         if self.m_Config['slv_w2v']:
             self.m_Solver.init_w2v_model(self.m_W2V_model)
 
+        self.m_LogFile = log_file
+
     def run_queries(self, doc_id_list, answer_file, processes=1, db_name='nldx'):
         logging_queue = multiprocessing.Queue(-1)
         init_process(logging_queue)
 
-        log_file = r'C:\Users\Misha\source\repos\TemporalSummarizationVS\Data\mp_log.txt'
-        logger = TSLogger(logging_queue, log_file)
+        logger = TSLogger(logging_queue, self.m_LogFile)
         logger.run_logger()
 
         info_msg = 'Test MSG'

@@ -7,10 +7,10 @@ from pymongo import MongoClient
 
 
 class RegTest:
-    def __init__(self, ref_answer_file, config_file, doc_ids, process_num=2):
+    def __init__(self, ref_answer_file, config_file, doc_ids, process_num=2, log_file='./ts_log.txt'):
         self.m_RefFilePath = ref_answer_file
         self.m_GenFilePath = os.path.join(tempfile.gettempdir(), 'temp_answer.xml')
-        self.m_Controller = TSController(config_file)
+        self.m_Controller = TSController(config_file, log_file=log_file)
         self.m_DocIds = doc_ids
         self.m_ProcessNum = process_num
 
