@@ -1,4 +1,5 @@
 from .ts_nldx_bridge import NldxSearchEngineBridge
+from .ts_elastic_bridge import ElasticSearchBridge
 from .ts_collection_constructor import TSCollectionConstructor
 from .ts_query_constructor import TSQueryConstructor
 from .ts_solver import TSSolver
@@ -43,7 +44,7 @@ class TSController:
 
         self.m_LogFile = log_file
 
-    def run_queries(self, doc_id_list, answer_file, processes=1, db_name='nldx'):
+    def run_queries(self, doc_id_list, answer_file, processes=1, search_engine_name='nldx'):
         logging_queue = multiprocessing.Queue(-1)
         init_process(logging_queue)
 
@@ -62,7 +63,7 @@ class TSController:
             run_queries_lock = multiprocessing.Lock()
             process_pool = multiprocessing.Pool(processes=processes, initializer=init_process,
                                                 initargs=(logging_queue, run_queries_lock))
-            run_query_args = [(self, doc_id, story_id, db_name) for story_id, doc_id in enumerate(doc_id_list)]
+            run_query_args = [(self, doc_id, story_id, search_engine_name) for story_id, doc_id in enumerate(doc_id_list)]
             run_queries_results = process_pool.starmap(TSController.run_query, run_query_args)
             for query_result in run_queries_results:
                 if query_result[0] == 'OK':
@@ -89,11 +90,15 @@ class TSController:
 
             logger.stop_logger()
 
-    def run_query(self, doc_id, story_id=0, db_name='nldx'):
+    def run_query(self, doc_id, story_id=0, search_engine_name='nldx'):
         # timer = SimpleTimer('TSController.run_query')
         try:
             logging.getLogger('timeline_console_logger').info('Start doc_id={} story_id={}'.format(doc_id, story_id))
-            self.m_DataExtractor = NldxSearchEngineBridge('127.0.0.1', '2062', db_name=db_name)
+            if search_engine_name == 'elastic':
+                self.m_DataExtractor = ElasticSearchBridge('127.0.0.1', '9200', db_name=search_engine_name)
+            else:
+                self.m_DataExtractor = NldxSearchEngineBridge('127.0.0.1', '2062', db_name=search_engine_name)
+
             self.m_QueryConstructor.init_data_extractor(self.m_DataExtractor)
             self.m_CollectionConstructor.init_data_extractor(self.m_DataExtractor)
 
@@ -152,10 +157,10 @@ class TSController:
         for time, query in timeline_queries.iterate_queries():
             summary_text += '<query int_date={}>\r\n'.format(time)
             summary_text += '<lemmas>\r\n'
-            summary_text += str(query.get_index('ЛЕММА')) + '\r\n'
+            summary_text += str(query.get_index('lemma')) + '\r\n'
             summary_text += '</lemmas>\r\n'
             summary_text += '<termins>\r\n'
-            summary_text += str(query.get_index('ТЕРМИН')) + '\r\n'
+            summary_text += str(query.get_index('termin')) + '\r\n'
             summary_text += '</termins>\r\n'
             summary_text += '</query>\r\n'
         summary_text += '</queries>\r\n'

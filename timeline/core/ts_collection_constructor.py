@@ -24,7 +24,7 @@ class TSCollectionConstructor:
                        'soft_or_coef': constr_coll_softor,
                        'min_doc_rank': constr_coll_min_doc_rank}
 
-        index_type_list = ['ЛЕММА', 'СЛОВО', 'ТЕРМИН']
+        index_type_list = ['lemma', 'word', 'termin']
 
         if self.m_Config['constr_coll_cut_query']:
             call_query = TSQuery()

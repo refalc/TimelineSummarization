@@ -103,18 +103,18 @@ class TSDocImportanceSolver:
         i = 0
         while len(head_sentences) < head_docs_sent and i < len(doc_sentences):
             sent = doc_sentences[i]
-            if sent.get_index('ЛЕММА') is not None and sent_min_len < sent.get_sent_len() < sent_max_len:
+            if sent.get_index('lemma') is not None and sent_min_len < sent.get_sent_len() < sent_max_len:
                 if w2v_enable:
-                    sent.get_index('ЛЕММА').construct_index_embedding(self.m_W2V_model)
+                    sent.get_index('lemma').construct_index_embedding(self.m_W2V_model)
                 head_sentences.append(sent)
             i += 1
 
         i = len(doc_sentences) - 1
         while len(tail_sentence) < tail_docs_sent and i >= 0:
             sent = doc_sentences[i]
-            if sent.get_index('ЛЕММА') is not None and sent_min_len < sent.get_sent_len() < sent_max_len:
+            if sent.get_index('lemma') is not None and sent_min_len < sent.get_sent_len() < sent_max_len:
                 if w2v_enable:
-                    sent.get_index('ЛЕММА').construct_index_embedding(self.m_W2V_model)
+                    sent.get_index('lemma').construct_index_embedding(self.m_W2V_model)
                 tail_sentence.append(sent)
             i -= 1
 

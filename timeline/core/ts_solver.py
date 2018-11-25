@@ -15,7 +15,7 @@ class TSSolver:
         w2v_enable = bool(self.m_Config['slv_w2v'])
         if w2v_enable:
             for time, query in timeline_queries.iterate_queries():
-                query.get_index('ЛЕММА').construct_index_embedding(self.m_W2V_model)
+                query.get_index('lemma').construct_index_embedding(self.m_W2V_model)
 
         max_daily_answer_size = self.m_Config['max_daily_answer_size']
         all_extracted = []
@@ -112,11 +112,11 @@ class TSSolver:
         sentences = []
         for doc in collection.iterate_docs():
             for sent in doc.sentence_iter():
-                if sent.get_index('ЛЕММА') is None:
+                if sent.get_index('lemma') is None:
                     continue
-                if self.m_Config['max_sentence_len'] > len(sent.get_index('ЛЕММА').get_index_data()) > \
+                if self.m_Config['max_sentence_len'] > len(sent.get_index('lemma').get_index_data()) > \
                    self.m_Config['min_sentence_len']:
                     if w2v_enable:
-                        sent.get_index('ЛЕММА').construct_index_embedding(self.m_W2V_model)
+                        sent.get_index('lemma').construct_index_embedding(self.m_W2V_model)
                     sentences.append(sent)
         return sentences

@@ -10,28 +10,30 @@ import logging
 
 
 class NldxSearchEngineBridge:
-    def __init__(self, address, port, db_name='nldx'):
+    def __init__(self, address, port, using_mongo=True, db_name='nldx'):
         self.m_Address = address
         self.m_Port = port
-        self.m_DBClient = MongoClient()
+        self.__using_mongo = using_mongo
         self.m_DBName = db_name
         self.m_DBCollectionName = 'doc_content'
-        if self.m_DBName not in self.m_DBClient.database_names() or \
-                self.m_DBCollectionName not in self.m_DBClient[self.m_DBName].collection_names():
-            self.m_DBClient[self.m_DBName][self.m_DBCollectionName].create_index([('doc_id', pymongo.ASCENDING)],
-                                                                                 unique=True)
-        info_msg = 'Loaded collection with {} docs'.format(
-            self.m_DBClient[self.m_DBName][self.m_DBCollectionName].count())
-        logging.getLogger('timeline_file_logger').info(info_msg)
-
         self.m_DBParsedCollectionName = 'parsed_doc_content'
-        if self.m_DBName not in self.m_DBClient.database_names() or \
-                self.m_DBParsedCollectionName not in self.m_DBClient[self.m_DBName].collection_names():
-            self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].create_index([('doc_id', pymongo.ASCENDING)],
-                                                                                       unique=True)
-        info_msg = 'Loaded parsed collection with {} docs'.format(
-            self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].count())
-        logging.getLogger('timeline_file_logger').info(info_msg)
+        if self.__using_mongo:
+            self.m_DBClient = MongoClient()
+            if self.m_DBName not in self.m_DBClient.database_names() or \
+                    self.m_DBCollectionName not in self.m_DBClient[self.m_DBName].collection_names():
+                self.m_DBClient[self.m_DBName][self.m_DBCollectionName].create_index([('doc_id', pymongo.ASCENDING)],
+                                                                                     unique=True)
+            info_msg = 'Loaded collection with {} docs'.format(
+                self.m_DBClient[self.m_DBName][self.m_DBCollectionName].count())
+            logging.getLogger('timeline_file_logger').info(info_msg)
+
+            if self.m_DBName not in self.m_DBClient.database_names() or \
+                    self.m_DBParsedCollectionName not in self.m_DBClient[self.m_DBName].collection_names():
+                self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].create_index([('doc_id', pymongo.ASCENDING)],
+                                                                                           unique=True)
+            info_msg = 'Loaded parsed collection with {} docs'.format(
+                self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].count())
+            logging.getLogger('timeline_file_logger').info(info_msg)
 
         self.m_StopWords = [elem.upper() for elem in nltk.corpus.stopwords.words('russian')]
         self.m_StopWords += ['HDR', 'CIR', 'CIR_HDR', 'CIRHDR', 'CIRPAR', 'NUM']
@@ -46,7 +48,7 @@ class NldxSearchEngineBridge:
         common_query_list = []
         termins_query_list = []
         for index in query.index_iter():
-            if index.get_type() == 'ТЕРМИН':
+            if index.get_type() == 'termin':
                 for item in index.get_sorted_index_data_list():
                     termins_query_list.append('/ТЕРМИН=\"' + item.m_Name + '\"')
             else:
@@ -109,7 +111,8 @@ class NldxSearchEngineBridge:
         if doc_id in self.m_HashedDocs:
             return self.m_HashedDocs[doc_id]
 
-        db_answer = self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].find_one({'doc_id': doc_id})
+        # self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].find_one({'doc_id': doc_id})
+        db_answer = self.__find_one_mongo(self.m_DBName, self.m_DBParsedCollectionName, doc_id)
 
         if db_answer is not None:
             document = TSDocument(doc_id)
@@ -126,15 +129,28 @@ class NldxSearchEngineBridge:
         if len(serr_doc_str) > 16793598:
             return None
 
-        self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].insert_one(
-            {'doc_id': doc_id, 'data': serr_doc_str})
+        # self.m_DBClient[self.m_DBName][self.m_DBParsedCollectionName].insert_one(
+            # {'doc_id': doc_id, 'data': serr_doc_str})
+        self.__insert_one_mongo(self.m_DBName, self.m_DBParsedCollectionName, doc_id, serr_doc_str)
         self.m_HashedDocs[doc_id] = document
         return document
+
+    def __find_one_mongo(self, db_name, coll_name, doc_id):
+        db_answer = None
+        if self.__using_mongo:
+            db_answer = self.m_DBClient[db_name][coll_name].find_one({'doc_id': doc_id})
+        return db_answer
+
+    def __insert_one_mongo(self, db_name, coll_name, doc_id, data):
+        if self.__using_mongo:
+            self.m_DBClient[db_name][coll_name].insert_one({'doc_id': doc_id, 'data': data})
 
     def _retrieve_doc_content(self, doc_id):
         params = {'doc_id': str(doc_id), 'show_all_feats': str(1)}
         req_query = 'http://{}:{}/doc_text'.format(self.m_Address, self.m_Port)
-        db_answer = self.m_DBClient[self.m_DBName][self.m_DBCollectionName].find_one({'doc_id': doc_id})
+
+        # db_answer = self.m_DBClient[self.m_DBName][self.m_DBCollectionName].find_one({'doc_id': doc_id})
+        db_answer = self.__find_one_mongo(self.m_DBName, self.m_DBCollectionName, doc_id)
         if db_answer is not None:
             return db_answer['data']
 
@@ -151,7 +167,8 @@ class NldxSearchEngineBridge:
         if len(req_text) > 500000:
             req_text = ''
 
-        self.m_DBClient[self.m_DBName][self.m_DBCollectionName].insert_one({'doc_id': doc_id, 'data': req_text})
+        # self.m_DBClient[self.m_DBName][self.m_DBCollectionName].insert_one({'doc_id': doc_id, 'data': req_text})
+        self.__insert_one_mongo(self.m_DBName, self.m_DBCollectionName, doc_id, req_text)
         return req_text
 
     @staticmethod
@@ -170,7 +187,7 @@ class NldxSearchEngineBridge:
             raise Exception('ERROR: table_start < 0 or table_end < 0')
         entity_table = doc_content[table_start:table_end + len('</table>')].replace('&AMP;', '&').replace('&QUOT;',
                                                                                                           '\"')
-        index_data_types = {'ТЕРМИН', 'ЛЕММА', 'СЛОВО'}
+        index_data_type_mapping = {'ТЕРМИН': 'termin', 'ЛЕММА': 'lemma', 'СЛОВО': 'word'}
         entity_list = []
         last_hdr_position = -1
 
@@ -184,6 +201,8 @@ class NldxSearchEngineBridge:
             if len(td_list) != 6:
                 continue
             entity_type = td_list[1]
+            if entity_type in index_data_type_mapping:
+                entity_type = index_data_type_mapping[entity_type]
 
             entity_name = td_list[2]
             entity_tfidf = float(td_list[3])
@@ -191,7 +210,7 @@ class NldxSearchEngineBridge:
             index_item = TSIndexItem(entity_type, entity_name, entity_tfidf, entity_pos_info)
             entity_list.append(index_item)
 
-            if entity_type == 'ЛЕММА':
+            if entity_type == 'lemma':
                 for pos in entity_pos_info:
                     max_pos_index = max(max_pos_index, pos[0])
                     if pos in lemmas_pos_index:
@@ -210,9 +229,9 @@ class NldxSearchEngineBridge:
                 if entity.m_PosInfo[0][1] < 3:
                     continue
                 document.add_sentence(int(entity.m_Name), entity.m_PosInfo)
-            elif entity.m_Type in index_data_types:
+            elif entity.m_Type in index_data_type_mapping.values():
                 document.add_pos_index_item(entity)
-                if entity.m_Type == 'ЛЕММА' and entity.m_Name not in chosen_lemmas:
+                if entity.m_Type == 'lemma' and entity.m_Name not in chosen_lemmas:
                     continue
                 entity.m_PosInfo = [pos_data for pos_data in entity.m_PosInfo if pos_data[0] > last_hdr_position]
                 if len(entity.m_PosInfo) == 0:
@@ -239,10 +258,10 @@ class NldxSearchEngineBridge:
             if word_pos not in doc_pos_index:
                 continue
 
-            label = 'СЛОВО'
+            label = 'word'
             if label not in doc_pos_index[word_pos]:
                 continue
-            word_name = doc_pos_index[word_pos]['СЛОВО'].m_Name
+            word_name = doc_pos_index[word_pos]['word'].m_Name
             word_len = len(word_name)
             lemmas2byte_map[word_pos] = (word_name, byte_shift, word_len)
 
