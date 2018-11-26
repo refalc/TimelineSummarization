@@ -22,7 +22,7 @@ def generate_config(space, path_to_config):
 
 
 space_config_no_ext = {
-    'query_l1_modality_list': {'ЛЕММА': {'result_query_size': hp.choice('result_query_size', range(2, 8))}},
+    'query_l1_modality_list': {'lemma': {'result_query_size': hp.choice('result_query_size', range(2, 8))}},
     'query_constr_ext': 0,
     'constr_coll_doccount': hp.choice('constr_coll_doccount', [x for x in range(100, 501) if x % 50 == 0]),
     'constr_coll_softor': 0.5,
