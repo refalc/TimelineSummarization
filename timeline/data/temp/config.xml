@@ -1,0 +1,14 @@
+<constr_coll_doccount type=int>500</constr_coll_doccount>
+<query_l1_modality_list type=json_dict>{"lemma": {"result_query_size": 10}}</query_l1_modality_list>
+<constr_coll_softor type=float>0.5</constr_coll_softor>
+<min_sentence_len type=int>4</min_sentence_len>
+<timeline_summary_size type=int>15</timeline_summary_size>
+<temporal type=int>0</temporal>
+<max_sentence_len type=int>50</max_sentence_len>
+<query_constr_ext type=int>0</query_constr_ext>
+<constr_coll_min_doc_rank type=float>0.0</constr_coll_min_doc_rank>
+<min_mmr type=float>0.0</min_mmr>
+<importance type=int>0</importance>
+<slv_w2v type=int>0</slv_w2v>
+<lambda type=float>0.8</lambda>
+<max_daily_answer_size type=int>15</max_daily_answer_size>
