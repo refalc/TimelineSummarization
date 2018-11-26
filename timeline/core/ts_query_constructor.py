@@ -14,20 +14,20 @@ class TSQueryConstructor:
 
     def construct_query(self, doc_id):
         query = self._construct_query_l1(doc_id)
-        info_msg = 'query_l1: {}'.format(query.get_index('ЛЕММА'))
+        info_msg = 'query_l1: {}'.format(query.get_index('lemma'))
         logging.getLogger('timeline_file_logger').info(info_msg)
 
         int_date = query.get_meta_data('INT_DATE')
         query_constr_ext = self.m_Config['query_constr_ext']
         if query_constr_ext:
             query = self._construct_query_l2(query)
-            info_msg = 'query_l2: {}'.format(query.get_index('ЛЕММА'))
+            info_msg = 'query_l2: {}'.format(query.get_index('lemma'))
             logging.getLogger('timeline_file_logger').info(info_msg)
 
             query_constr_double_ext = self.m_Config['query_constr_double_ext']
             if query_constr_double_ext:
                 query = self._construct_query_l3(query)
-                info_msg = 'query_l3: {}'.format(query.get_index('ЛЕММА'))
+                info_msg = 'query_l3: {}'.format(query.get_index('lemma'))
                 logging.getLogger('timeline_file_logger').info(info_msg)
 
         query.add_meta_data('INT_DATE', int_date)

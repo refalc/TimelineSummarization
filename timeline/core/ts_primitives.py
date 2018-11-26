@@ -148,7 +148,7 @@ class TSIndexiesHolder:
     def __init__(self):
         self.m_Indexies = dict()
 
-        #todo del
+        # todo del
         self.m_PosIndex = dict()
 
     def add_index_item(self, index_item):
@@ -177,12 +177,12 @@ class TSIndexiesHolder:
     def index_iter(self):
         return (self.m_Indexies[index] for index in self.m_Indexies)
 
-    def sim(self, other, modality='ЛЕММА'):
+    def sim(self, other, modality='lemma'):
         if modality not in self.m_Indexies or modality not in other.m_Indexies:
             return 0.0
         return self.m_Indexies[modality].sim(other.m_Indexies[modality])
 
-    def sim_embedding(self, other, modality='ЛЕММА'):
+    def sim_embedding(self, other, modality='lemma'):
         if modality not in self.m_Indexies or modality not in other.m_Indexies:
             return 0.0
         return self.m_Indexies[modality].sim_embedding(other.m_Indexies[modality])
@@ -271,7 +271,7 @@ class TSSentence(TSIndexiesHolder, TSMeta):
     def __hash__(self):
         return hash('{}:{}'.format(self.m_SentenceID, self.m_ParentDoc.get_doc_id()))
 
-    def get_sent_len(self, modality='ЛЕММА'):
+    def get_sent_len(self, modality='lemma'):
         return len(self.get_index(modality).get_index_data())
 
 
@@ -297,6 +297,11 @@ class TSDocument(TSIndexiesHolder, TSMeta):
             if sent_id not in self.m_Sentences:
                 continue
 
+            self.m_Sentences[sent_id].add_index_item(index_item)
+
+    def add_index_item_to_sentence(self, index_item, sent_id):
+        TSIndexiesHolder.add_index_item(self, index_item)
+        if sent_id in self.m_Sentences:
             self.m_Sentences[sent_id].add_index_item(index_item)
 
     def sentence_iter(self):
