@@ -36,6 +36,12 @@ class ElasticSearchBridge:
         all_doc_count = self.__elastic_search.count(index=self.__index_name)['count']
         self.__mean_doc_in_shard = all_doc_count / shards
 
+        try:
+            self.m_Lock = __nldx_lock
+        except Exception as e:
+            self.m_Lock = None
+
+
     def retrieve_docs(self, query, params):
         query_list = []
         for index in query.index_iter():
@@ -169,4 +175,15 @@ class ElasticSearchBridge:
 
     def __insert_one_mongo(self, db_name, coll_name, doc_id, data):
         if self.__using_mongo:
-            self.__db_client[db_name][coll_name].insert_one({'doc_id': doc_id, 'data': data})
+            try:
+                if self.m_Lock is not None:
+                    self.m_Lock.acquire()
+                    try:
+                        if self.__find_one_mongo(self.__db_name, self.__db_parsed_collection_name, doc_id) is None:
+                            self.__db_client[db_name][coll_name].insert_one({'doc_id': doc_id, 'data': data})
+                    finally:
+                        self.m_Lock.release()
+                elif self.__find_one_mongo(self.__db_name, self.__db_parsed_collection_name, doc_id) is None:
+                    self.__db_client[db_name][coll_name].insert_one({'doc_id': doc_id, 'data': data})
+            except:
+                print('WTF')

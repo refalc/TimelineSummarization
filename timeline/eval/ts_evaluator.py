@@ -31,9 +31,9 @@ class TSEvaluator:
                     self.m_StopWords.add(word)
 
     def run_and_evaluate(self, path_to_config, doc_ids, answer_path, evaluate_out_path, process_num=1,
-                         mode='sent_by_sent', log_file='./ts_log.txt'):
+                         mode='sent_by_sent', log_file='./ts_log.txt', search_engine_name='elastic'):
         controller = TSController(path_to_config, log_file)
-        res = controller.run_queries(doc_ids, answer_path, process_num)
+        res = controller.run_queries(doc_ids, answer_path, process_num, search_engine_name=search_engine_name)
         if res:
             evaluate_results = self.evaluate(answer_path, mode=mode)
             self._save_results(evaluate_results, mode, controller.get_config(), evaluate_out_path)

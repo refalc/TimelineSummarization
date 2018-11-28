@@ -4,9 +4,9 @@ import os
 
 
 if __name__ == '__main__':
-    stop_words_path = r'C:\!DEV\C++\Diplom\GoldSummary\stop_words.txt'
-    ref_data_path = r'C:\!DEV\C++\Diplom\GoldSummary\gold1.xml'
-    mapping_data_path = r'C:\!DEV\C++\Diplom\GoldSummary\id_to_querry.xml'
+    stop_words_path = r'..\data\GoldSummary\stop_words.txt'
+    ref_data_path = r'..\data\GoldSummary\gold1.xml'
+    mapping_data_path = r'..\data\GoldSummary\id_to_querry.xml'
     evaluator = TSEvaluator(lemmatization=True)
     evaluator.init_stop_words(stop_words_path)
     evaluator.init_reference_data(ref_data_path, mapping_data_path)

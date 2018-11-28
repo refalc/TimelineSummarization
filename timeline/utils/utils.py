@@ -5,6 +5,7 @@ import datetime
 from logging.handlers import QueueListener
 import logging
 import sys
+import multiprocessing
 
 
 class ConfigReader:
@@ -105,10 +106,17 @@ class TSQueueListener(QueueListener):
 
 
 class TSLogger:
-    def __init__(self, queue, log_file):
-        self.m_Queue = queue
+    __queue = None
+
+    def __init__(self, log_file):
         self.m_LogFile = log_file
         self.m_Listener = None
+
+    @staticmethod
+    def get_logger_queue():
+        if TSLogger.__queue is None:
+            TSLogger.__queue = multiprocessing.Queue(-1)
+        return TSLogger.__queue
 
     def run_logger(self):
         file_handler = logging.FileHandler(self.m_LogFile)
@@ -117,7 +125,7 @@ class TSLogger:
         console_formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         file_handler.setFormatter(file_formatter)
         console_handler.setFormatter(console_formatter)
-        self.m_Listener = TSQueueListener(self.m_Queue, {'timeline_file_logger': file_handler,
+        self.m_Listener = TSQueueListener(self.get_logger_queue(), {'timeline_file_logger': file_handler,
                                                          'timeline_console_logger': console_handler})
         self.m_Listener.start()
 

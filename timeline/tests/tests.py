@@ -2,8 +2,6 @@ from ..core.ts_controller import TSController
 import tempfile
 import os
 import codecs
-import pymongo
-from pymongo import MongoClient
 
 
 class RegTest:
@@ -14,26 +12,9 @@ class RegTest:
         self.m_DocIds = doc_ids
         self.m_ProcessNum = process_num
 
-    def run_reg_test(self, use_test_db_mode=False):
-        db_name = 'nldx'
-        if use_test_db_mode:
-            db_name = 'nldx_rg_test'
-            coll_1_name = 'doc_content'
-            coll_2_name = 'parsed_doc_content'
-            db_client = MongoClient()
-            db_client.drop_database(db_name)
-
-            db_client[db_name][coll_1_name].create_index([('doc_id', pymongo.ASCENDING)], unique=True)
-            db_client[db_name][coll_2_name].create_index([('doc_id', pymongo.ASCENDING)], unique=True)
-
-            res = self.m_Controller.run_queries(self.m_DocIds, self.m_GenFilePath, self.m_ProcessNum, db_name)
-            if not res:
-                return 'ERROR', 'run_queries'
-            res = self._cmp_results()
-            if not res:
-                return 'ERROR', '_cmp_results'
-
-        res = self.m_Controller.run_queries(self.m_DocIds, self.m_GenFilePath, self.m_ProcessNum, db_name)
+    def run_reg_test(self):
+        search_engine_name = 'nldx'
+        res = self.m_Controller.run_queries(self.m_DocIds, self.m_GenFilePath, self.m_ProcessNum, search_engine_name)
         if not res:
             return 'ERROR', 'run_queries'
 

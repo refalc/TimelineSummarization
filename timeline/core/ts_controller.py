@@ -7,6 +7,7 @@ from .ts_primitives import TSTimeLineQueries
 from ..utils.utils import ConfigReader, SimpleTimer, get_document_int_time, TSLogger
 from gensim.models import KeyedVectors
 import multiprocessing
+import threading
 import codecs
 from logging.handlers import QueueHandler
 import logging
@@ -17,14 +18,15 @@ def init_process(log_queue, nldx_lock=None):
         global __nldx_lock
         __nldx_lock = nldx_lock
 
-    logger_queue_handler = QueueHandler(log_queue)
     logger = logging.getLogger('timeline_file_logger')
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logger_queue_handler)
+    if len(logger.handlers) == 0:
+        logger.setLevel(logging.DEBUG)
+        logger_queue_handler = QueueHandler(log_queue)
+        logger.addHandler(logger_queue_handler)
 
-    logger = logging.getLogger('timeline_console_logger')
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logger_queue_handler)
+        logger = logging.getLogger('timeline_console_logger')
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(logger_queue_handler)
 
 
 class TSController:
@@ -44,11 +46,11 @@ class TSController:
 
         self.m_LogFile = log_file
 
-    def run_queries(self, doc_id_list, answer_file, processes=1, search_engine_name='nldx'):
-        logging_queue = multiprocessing.Queue(-1)
+    def run_queries(self, doc_id_list, answer_file, processes=1, search_engine_name='elastic'):
+        logging_queue = TSLogger.get_logger_queue()
         init_process(logging_queue)
 
-        logger = TSLogger(logging_queue, self.m_LogFile)
+        logger = TSLogger(self.m_LogFile)
         logger.run_logger()
 
         process_pool = None
@@ -73,8 +75,6 @@ class TSController:
                 print('Completed with ERRORS:')
                 for error_info in error_results:
                     print(error_info)
-            else:
-                print('Completed without ERRORS')
 
             summaries = sorted(summaries, key=lambda summ_info: summ_info[0])
             with codecs.open(answer_file, 'w', 'windows-1251') as file_descr:
@@ -88,10 +88,10 @@ class TSController:
 
             logger.stop_logger()
 
-    def run_query(self, doc_id, story_id=0, search_engine_name='nldx'):
+    def run_query(self, doc_id, story_id=0, search_engine_name='elastic'):
         # timer = SimpleTimer('TSController.run_query')
         try:
-            logging.getLogger('timeline_console_logger').info('Start doc_id={} story_id={}'.format(doc_id, story_id))
+            #logging.getLogger('timeline_console_logger').info('Start doc_id={} story_id={}'.format(doc_id, story_id))
             if search_engine_name == 'elastic':
                 self.m_DataExtractor = ElasticSearchBridge('127.0.0.1', '9200', db_name=search_engine_name)
             else:
@@ -109,8 +109,8 @@ class TSController:
         except Exception as e:
             run_result = ('ERROR', e, doc_id, story_id)
 
-        logging.getLogger('timeline_console_logger').info(
-            'End doc_id={} story_id={} with code={}'.format(doc_id, story_id, run_result[0]))
+        #logging.getLogger('timeline_console_logger').info(
+            #'End doc_id={} story_id={} with code={}'.format(doc_id, story_id, run_result[0]))
 
         return run_result
 
